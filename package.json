@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",
-    "deploy": "pnpm build && wrangler deploy",
+    "deploy": "pnpm build && wrangler deploy --config dist/server/wrangler.json",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "start": "vinext start",
     "test": "vinext build && node --test tests/rendered-html.test.mjs",

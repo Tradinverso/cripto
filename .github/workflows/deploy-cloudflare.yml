@@ -52,4 +52,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
+          # La configuración generada por Vinext enlaza el Worker compilado con
+          # los recursos del mismo build en dist/client. Así los hashes de CSS
+          # y JavaScript siempre se publican juntos.
+          command: deploy --config dist/server/wrangler.json
