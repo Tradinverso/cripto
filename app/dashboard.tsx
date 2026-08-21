@@ -309,6 +309,7 @@ export function Dashboard() {
             <a className="quick-action" href={privateConfig?.drive.pending || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">▤</span><span><strong>Pendientes de firma</strong><small>Abrir carpeta de Drive</small></span><b>›</b></a>
             <a className="quick-action" href={privateConfig?.drive.signed || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">↑</span><span><strong>Contratos firmados</strong><small>PDF privados en Drive</small></span><b>›</b></a>
             <div className="drive-health"><span>✓</span><div><strong>Drive conectado</strong><small>4 carpetas preparadas</small></div></div>
+            <div className={`drive-health pandadoc-health ${privateConfig?.pandadoc.configured ? "" : "offline"}`}><span>PD</span><div><strong>{privateConfig?.pandadoc.configured ? "PandaDoc conectado" : "PandaDoc sin conectar"}</strong><small>{privateConfig?.pandadoc.configured ? "Envío y firmas disponibles" : "Falta configurar la clave"}</small></div></div>
           </aside>}
         </section>}
 

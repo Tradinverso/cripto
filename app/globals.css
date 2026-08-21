@@ -89,6 +89,12 @@ nav { display:grid; gap:7px; }
 .drive-health strong,.drive-health small { display:block; }
 .drive-health strong { font-size:10px; }
 .drive-health small { font-size:9px; margin-top:2px; color:#5f8c74; }
+.pandadoc-health { margin-top:8px; background:#eef5fd; color:#215e99; }
+.pandadoc-health>span { border-radius:7px; background:#d9eaff; color:#0b65bd; font-weight:900; }
+.pandadoc-health small { color:#6385a7; }
+.pandadoc-health.offline { background:#fff4e8; color:#93601e; }
+.pandadoc-health.offline>span { background:#ffe5c4; color:#93601e; }
+.pandadoc-health.offline small { color:#a98454; }
 .view-panel { min-height:420px; }
 .view-table { width:100%; }
 .view-table-row { display:grid; grid-template-columns:1.45fr .55fr .75fr .85fr .8fr; gap:14px; align-items:center; min-height:55px; padding:11px 22px; border-top:1px solid #edf0f4; color:#56647a; font-size:11px; }
