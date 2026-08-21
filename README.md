@@ -1,5 +1,7 @@
 # Plataforma privada de contratos TRADINVERSO
 
+**Acceso a la plataforma:** [tradinverso-contratos.tradinverso.workers.dev](https://tradinverso-contratos.tradinverso.workers.dev)
+
 Aplicación interna para registrar alumnos que pagan en USDT o USDC, controlar sus cuotas, gestionar el estado de acceso y generar acuerdos privados personalizados.
 
 ## Funciones principales
