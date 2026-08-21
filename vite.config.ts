@@ -13,21 +13,22 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
 export default defineConfig(async ({ mode }) => {
   const localEnv = loadEnv(mode, process.cwd(), "");
+  const localRuntimeVars = mode === "development" ? {
+    APP_PASSWORD: localEnv.APP_PASSWORD || "",
+    SESSION_SECRET: localEnv.SESSION_SECRET || "",
+    PROVIDER_NAME: localEnv.PROVIDER_NAME || "",
+    PROVIDER_DOCUMENT_ID: localEnv.PROVIDER_DOCUMENT_ID || "",
+    PROVIDER_ADDRESS: localEnv.PROVIDER_ADDRESS || "",
+    PROVIDER_EMAIL: localEnv.PROVIDER_EMAIL || "",
+    PROVIDER_PHONE: localEnv.PROVIDER_PHONE || "",
+    DRIVE_ROOT_URL: localEnv.DRIVE_ROOT_URL || "",
+    DRIVE_PENDING_URL: localEnv.DRIVE_PENDING_URL || "",
+    DRIVE_SIGNED_URL: localEnv.DRIVE_SIGNED_URL || "",
+  } : {};
   const localBindingConfig = {
     main: "./worker/index.ts",
     compatibility_flags: ["nodejs_compat"],
-    vars: {
-      APP_PASSWORD: localEnv.APP_PASSWORD || "",
-      SESSION_SECRET: localEnv.SESSION_SECRET || "",
-      PROVIDER_NAME: localEnv.PROVIDER_NAME || "",
-      PROVIDER_DOCUMENT_ID: localEnv.PROVIDER_DOCUMENT_ID || "",
-      PROVIDER_ADDRESS: localEnv.PROVIDER_ADDRESS || "",
-      PROVIDER_EMAIL: localEnv.PROVIDER_EMAIL || "",
-      PROVIDER_PHONE: localEnv.PROVIDER_PHONE || "",
-      DRIVE_ROOT_URL: localEnv.DRIVE_ROOT_URL || "",
-      DRIVE_PENDING_URL: localEnv.DRIVE_PENDING_URL || "",
-      DRIVE_SIGNED_URL: localEnv.DRIVE_SIGNED_URL || "",
-    },
+    vars: localRuntimeVars,
     d1_databases: d1
       ? [
           {
