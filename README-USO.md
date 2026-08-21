@@ -21,6 +21,6 @@ Los botones de la propia plataforma abren la carpeta principal, los contratos pe
 
 Los datos de seguimiento de alumnos y pagos quedan guardados localmente en esta aplicación. Los documentos y contratos firmados quedan centralizados en el Drive privado.
 
-## GitHub y compilación
+## GitHub y publicación
 
-La plataforma no es una página estática basada únicamente en `index.html`: incluye base de datos, rutas privadas y generación de contratos. GitHub guarda el código y el historial, mientras que Vinext crea la versión ejecutable mediante `pnpm build`. Para publicarla en Internet debe usarse un servidor compatible con Cloudflare Workers y configurar allí `APP_PASSWORD` y `SESSION_SECRET` como secretos; GitHub Pages no es suficiente para esta aplicación.
+La plataforma no es una página estática basada únicamente en `index.html`: incluye base de datos, rutas privadas y generación de contratos. GitHub guarda el código y el historial. Cloudflare Workers compila y publica automáticamente los cambios de la rama `main`, mantiene la contraseña en sus secretos cifrados y guarda los registros en D1. GitHub Pages no se utiliza porque no puede ejecutar estas funciones privadas.

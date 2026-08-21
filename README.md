@@ -29,10 +29,13 @@ pnpm dev
 
 En el ordenador de administración también puede abrirse con `ABRIR PLATAFORMA.cmd`.
 
-## Compilación
+## Publicación con GitHub y Cloudflare
+
+El repositorio de GitHub es la fuente del código. Cloudflare Workers ejecuta la aplicación, sirve los archivos estáticos y guarda alumnos y pagos en la base D1 `tradinverso-contratos`.
 
 ```bash
 pnpm build
+pnpm deploy
 ```
 
 No existe un único `index.html` porque esta aplicación tiene rutas de servidor, autenticación y una base D1. Vinext genera una aplicación compatible con Cloudflare Workers. GitHub Pages, al ser alojamiento estático, no puede ejecutar por sí solo esta plataforma.
@@ -43,8 +46,8 @@ No existe un único `index.html` porque esta aplicación tiene rutas de servidor
 - `db/`: tablas de alumnos y pagos.
 - `drizzle/`: migraciones de la base de datos.
 - `worker/`: entrada del servidor y protección por contraseña.
-- `.openai/hosting.json`: declaración de la base D1 para Sites.
+- `wrangler.jsonc`: configuración de Cloudflare Worker, archivos estáticos y base D1.
 
 ## Datos de producción
 
-La publicación necesita una base D1 independiente. Los datos locales nunca se copian automáticamente a producción ni se versionan en GitHub.
+La publicación utiliza una base D1 independiente. Los datos locales nunca se copian automáticamente a producción ni se versionan en GitHub. La contraseña, la clave de sesión, los datos del proveedor y los enlaces de Drive se configuran como secretos cifrados de Cloudflare.

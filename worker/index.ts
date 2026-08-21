@@ -7,7 +7,7 @@ interface Env {
   DB: D1Database;
   APP_PASSWORD?: string;
   SESSION_SECRET?: string;
-  IMAGES: {
+  IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
         output(options: { format: string; quality: number }): Promise<{ response(): Response }>;
@@ -116,6 +116,13 @@ const worker = {
     }
 
     if (url.pathname === "/_vinext/image") {
+      if (!env.IMAGES) {
+        const sourcePath = url.searchParams.get("url");
+        if (sourcePath?.startsWith("/")) {
+          return env.ASSETS.fetch(new Request(new URL(sourcePath, request.url)));
+        }
+        return new Response("Imagen no disponible.", { status: 400 });
+      }
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(request, {
         fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),

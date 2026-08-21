@@ -1,5 +1,5 @@
 {
-  "name": "site-creator-vinext-starter",
+  "name": "tradinverso-contratos",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -8,6 +8,8 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",
+    "deploy": "pnpm build && wrangler deploy",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "start": "vinext start",
     "test": "vinext build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
