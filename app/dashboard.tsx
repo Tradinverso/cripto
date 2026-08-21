@@ -1,0 +1,288 @@
+"use client";
+
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+
+type Payment = {
+  id: number;
+  installmentNo: number;
+  amount: number;
+  currency: string;
+  dueDate: string;
+  paidAt: string | null;
+  status: "pending" | "paid" | "overdue";
+};
+
+type Student = {
+  id: number;
+  fullName: string;
+  documentId: string;
+  address: string;
+  country: string;
+  email: string;
+  phone: string;
+  plan: number;
+  installmentAmount: number;
+  currency: string;
+  network: string;
+  wallet: string;
+  accessStatus: "active" | "paused";
+  contractStatus: "pending" | "signed";
+  signedPdfUrl: string;
+  notes: string;
+  payments: Payment[];
+};
+
+type PrivateConfig = {
+  provider: { name: string };
+  drive: { root: string; pending: string; signed: string };
+};
+
+const emptyForm = {
+  fullName: "",
+  documentId: "",
+  address: "",
+  country: "",
+  email: "",
+  phone: "",
+  plan: 3,
+  currency: "USDT",
+  network: "",
+  wallet: "",
+  notes: "",
+  dueDates: ["", "", "", ""],
+};
+
+function formatDate(value: string) {
+  if (!value) return "Sin fecha";
+  return new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${value}T12:00:00`));
+}
+
+function initials(name: string) {
+  return name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+}
+
+export function Dashboard() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [privateConfig, setPrivateConfig] = useState<PrivateConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [showForm, setShowForm] = useState(false);
+  const [selected, setSelected] = useState<Student | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState("");
+
+  const loadStudents = useCallback(async (selectedId?: number) => {
+    setError("");
+    try {
+      const [response, configResponse] = await Promise.all([
+        fetch("/api/students", { cache: "no-store" }),
+        fetch("/api/config", { cache: "no-store" }),
+      ]);
+      const payload = await response.json() as { students?: Student[]; error?: string };
+      const configPayload = await configResponse.json() as PrivateConfig & { error?: string };
+      if (!response.ok) throw new Error(payload.error || "No se pudo cargar la información.");
+      if (!configResponse.ok) throw new Error(configPayload.error || "No se pudo cargar la configuración privada.");
+      setStudents(payload.students || []);
+      setPrivateConfig(configPayload);
+      if (selectedId) setSelected((payload.students || []).find((item) => item.id === selectedId) || null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo cargar la información.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => void loadStudents(), 0);
+    return () => window.clearTimeout(initialLoad);
+  }, [loadStudents]);
+
+  const filtered = useMemo(() => students.filter((student) => {
+    const matchesText = `${student.fullName} ${student.email} ${student.documentId}`.toLowerCase().includes(query.toLowerCase());
+    const matchesFilter = filter === "all" || (filter === "overdue" ? student.payments.some((payment) => payment.status === "overdue") : student.contractStatus === filter);
+    return matchesText && matchesFilter;
+  }), [students, query, filter]);
+
+  const stats = useMemo(() => {
+    const openPayments = students.flatMap((student) => student.payments).filter((payment) => payment.status !== "paid");
+    return {
+      active: students.filter((student) => student.accessStatus === "active").length,
+      receivable: openPayments.reduce((sum, payment) => sum + payment.amount, 0),
+      overdue: openPayments.filter((payment) => payment.status === "overdue").length,
+      signed: students.filter((student) => student.contractStatus === "signed").length,
+    };
+  }, [students]);
+
+  async function createStudent(event: FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, dueDates: form.dueDates.slice(0, form.plan) }),
+      });
+      const payload = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "No se pudo crear el alumno.");
+      setForm(emptyForm);
+      setShowForm(false);
+      await loadStudents();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo crear el alumno.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function togglePayment(payment: Payment) {
+    await fetch(`/api/payments/${payment.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: payment.status === "paid" ? "pending" : "paid" }),
+    });
+    await loadStudents(selected.id);
+  }
+
+  async function saveSignedPdf() {
+    if (!selected) return;
+    setSaving(true);
+    const response = await fetch(`/api/students/${selected.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ signedPdfUrl: pdfUrl, contractStatus: pdfUrl ? "signed" : "pending" }),
+    });
+    setSaving(false);
+    if (response.ok) {
+      setPdfUrl("");
+      await loadStudents(selected.id);
+    }
+  }
+
+  function openStudent(student: Student) {
+    setSelected(student);
+    setPdfUrl(student.signedPdfUrl || "");
+  }
+
+  return (
+    <main className="app-shell">
+      <aside className="sidebar">
+        <div className="brand"><div className="brand-mark"><span>T</span></div><div><strong>TRADINVERSO</strong><span>Gestión privada</span></div></div>
+        <nav aria-label="Navegación principal">
+          <a className="nav-item active" href="#panel"><span>▦</span>Panel</a>
+          <a className="nav-item" href="#alumnos"><span>◎</span>Alumnos</a>
+          <a className="nav-item" href="#pagos"><span>◇</span>Pagos</a>
+          <a className="nav-item" href="#contratos"><span>▤</span>Contratos</a>
+        </nav>
+        <a className="drive-card" href={privateConfig?.drive.root || "#"} target="_blank" rel="noreferrer"><span className="drive-icon">D</span><span><strong>Google Drive</strong><small>Carpeta conectada</small></span><b>↗</b></a>
+        <div className="profile"><div className="avatar">{initials(privateConfig?.provider.name || "Administrador")}</div><span><strong>{privateConfig?.provider.name || "Administrador"}</strong><small>Administrador</small></span></div>
+      </aside>
+
+      <section className="workspace" id="panel">
+        <header className="topbar">
+          <div><p className="eyebrow">GESTIÓN INTERNA</p><h1>Control de contratos</h1><p>Alumnos, cobros y accesos en un solo lugar.</p></div>
+          <div className="topbar-actions"><form action="/api/auth/logout" method="post"><button className="logout-button" type="submit">Cerrar sesión</button></form><button className="primary-button" type="button" onClick={() => setShowForm(true)}><span>＋</span>Nuevo alumno</button></div>
+        </header>
+
+        {error && <div className="alert" role="alert">{error}<button type="button" onClick={() => setError("")}>×</button></div>}
+
+        <section className="stats" aria-label="Resumen">
+          <article className="stat-card"><span className="stat-icon blue">◎</span><div><p>Alumnos activos</p><strong>{stats.active}</strong><small>{students.length} registrados</small></div></article>
+          <article className="stat-card"><span className="stat-icon gold">◇</span><div><p>Por cobrar</p><strong>{stats.receivable.toLocaleString("es-ES")}</strong><small>USDT / USDC</small></div></article>
+          <article className="stat-card"><span className="stat-icon red">!</span><div><p>Pagos vencidos</p><strong>{stats.overdue}</strong><small>{stats.overdue ? "Requieren seguimiento" : "Todo al día"}</small></div></article>
+          <article className="stat-card"><span className="stat-icon green">✓</span><div><p>Contratos firmados</p><strong>{stats.signed}</strong><small>{students.length - stats.signed} pendientes</small></div></article>
+        </section>
+
+        <section className="content-grid">
+          <article className="panel students-panel" id="alumnos">
+            <div className="panel-heading panel-heading-stack">
+              <div><h2>Seguimiento de alumnos</h2><p>Próximos pagos y estado de acceso</p></div>
+              <div className="table-tools">
+                <input aria-label="Buscar alumno" placeholder="Buscar alumno…" value={query} onChange={(event) => setQuery(event.target.value)} />
+                <select aria-label="Filtrar alumnos" value={filter} onChange={(event) => setFilter(event.target.value)}>
+                  <option value="all">Todos</option><option value="pending">Pendientes de firma</option><option value="signed">Firmados</option><option value="overdue">Con pagos vencidos</option>
+                </select>
+              </div>
+            </div>
+            <div className="student-table" role="table" aria-label="Alumnos">
+              <div className="table-row table-head" role="row"><span>ALUMNO</span><span>PLAN</span><span>PROGRESO</span><span>PRÓXIMO PAGO</span><span>ACCESO</span></div>
+              {loading && <div className="empty-state"><strong>Cargando alumnos…</strong></div>}
+              {!loading && filtered.length === 0 && <div className="empty-state"><span>◎</span><strong>Aún no hay alumnos</strong><p>Crea el primero para generar su calendario y contrato.</p><button type="button" onClick={() => setShowForm(true)}>Registrar alumno</button></div>}
+              {filtered.map((student) => {
+                const paid = student.payments.filter((payment) => payment.status === "paid").length;
+                const next = student.payments.find((payment) => payment.status !== "paid");
+                return (
+                  <button className="table-row clickable-row" role="row" key={student.id} type="button" onClick={() => openStudent(student)}>
+                    <span className="student-name"><b>{initials(student.fullName)}</b><span><strong>{student.fullName}</strong><small>{student.contractStatus === "signed" ? "Contrato firmado" : "Pendiente de firma"}</small></span></span>
+                    <span>{student.plan} pagos · {student.installmentAmount} {student.currency}</span>
+                    <span><strong>{paid} de {student.plan}</strong><i><em style={{ width: `${(paid / student.plan) * 100}%` }} /></i></span>
+                    <span>{next ? formatDate(next.dueDate) : "Completado"}</span>
+                    <span><mark className={`status ${student.accessStatus === "active" ? "active" : "paused"}`}>{student.accessStatus === "active" ? "Activo" : "Pausado"}</mark></span>
+                  </button>
+                );
+              })}
+            </div>
+          </article>
+
+          <aside className="panel quick-panel" id="contratos">
+            <div className="panel-heading"><div><h2>Acciones rápidas</h2><p>Tu operativa diaria</p></div></div>
+            <button className="quick-action" type="button" onClick={() => setShowForm(true)}><span className="quick-icon">＋</span><span><strong>Registrar alumno</strong><small>Crear ficha y calendario</small></span><b>›</b></button>
+            <a className="quick-action" href={privateConfig?.drive.pending || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">▤</span><span><strong>Pendientes de firma</strong><small>Abrir carpeta de Drive</small></span><b>›</b></a>
+            <a className="quick-action" href={privateConfig?.drive.signed || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">↑</span><span><strong>Contratos firmados</strong><small>PDF privados en Drive</small></span><b>›</b></a>
+            <div className="drive-health"><span>✓</span><div><strong>Drive conectado</strong><small>4 carpetas preparadas</small></div></div>
+          </aside>
+        </section>
+      </section>
+
+      {showForm && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && !saving && setShowForm(false)}>
+          <section className="modal" role="dialog" aria-modal="true" aria-labelledby="new-student-title">
+            <div className="modal-header"><div><p className="eyebrow">NUEVA INCORPORACIÓN</p><h2 id="new-student-title">Registrar alumno</h2><p>La ficha creará automáticamente su calendario de cuotas.</p></div><button type="button" aria-label="Cerrar" onClick={() => setShowForm(false)}>×</button></div>
+            <form onSubmit={createStudent}>
+              <div className="form-section"><h3>Datos del alumno</h3><div className="form-grid">
+                <label className="wide">Nombre y apellidos<input required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></label>
+                <label>DNI / Pasaporte<input required value={form.documentId} onChange={(e) => setForm({ ...form, documentId: e.target.value })} /></label>
+                <label>País<input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} /></label>
+                <label className="wide">Dirección<input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></label>
+                <label>Correo electrónico<input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
+                <label>Teléfono<input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
+              </div></div>
+              <div className="form-section"><h3>Plan y criptomoneda</h3><div className="form-grid">
+                <label>Plan<select value={form.plan} onChange={(e) => setForm({ ...form, plan: Number(e.target.value) })}><option value={3}>3 pagos de 510</option><option value={4}>4 pagos de 385</option></select></label>
+                <label>Criptomoneda<select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}><option>USDT</option><option>USDC</option></select></label>
+                <label>Red<input placeholder="Ej. TRC20, ERC20…" value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })} /></label>
+                <label className="wide">Wallet<input value={form.wallet} onChange={(e) => setForm({ ...form, wallet: e.target.value })} /></label>
+              </div></div>
+              <div className="form-section"><h3>Fechas de pago</h3><div className="dates-grid">{Array.from({ length: form.plan }, (_, index) => <label key={index}>Pago {index + 1}<input required type="date" value={form.dueDates[index]} onChange={(e) => { const dueDates = [...form.dueDates]; dueDates[index] = e.target.value; setForm({ ...form, dueDates }); }} /></label>)}</div></div>
+              <div className="form-section"><label>Notas internas<textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label></div>
+              <footer className="modal-footer"><button type="button" className="secondary-button" onClick={() => setShowForm(false)}>Cancelar</button><button className="primary-button" disabled={saving}>{saving ? "Guardando…" : "Guardar alumno"}</button></footer>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {selected && (
+        <div className="drawer-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setSelected(null)}>
+          <aside className="drawer" role="dialog" aria-modal="true" aria-label={`Ficha de ${selected.fullName}`}>
+            <div className="drawer-header"><div className="student-hero"><b>{initials(selected.fullName)}</b><div><p className="eyebrow">FICHA DEL ALUMNO</p><h2>{selected.fullName}</h2><span>{selected.documentId} · {selected.country || "Sin país"}</span></div></div><button type="button" aria-label="Cerrar" onClick={() => setSelected(null)}>×</button></div>
+            <div className="drawer-content">
+              <div className="detail-grid"><span><small>Correo</small><strong>{selected.email}</strong></span><span><small>Teléfono</small><strong>{selected.phone}</strong></span><span><small>Plan</small><strong>{selected.plan} × {selected.installmentAmount} {selected.currency}</strong></span><span><small>Red</small><strong>{selected.network || "Sin indicar"}</strong></span></div>
+              <section className="drawer-section" id="pagos"><div className="section-title"><h3>Calendario de pagos</h3><mark className={`status ${selected.accessStatus === "active" ? "active" : "paused"}`}>{selected.accessStatus === "active" ? "Acceso activo" : "Acceso pausado"}</mark></div>
+                <div className="payments-list">{selected.payments.map((payment) => <div className="payment-item" key={payment.id}><span><b>{payment.installmentNo}</b><span><strong>{payment.amount} {payment.currency}</strong><small>Vence {formatDate(payment.dueDate)}</small></span></span><button className={`payment-toggle ${payment.status}`} type="button" onClick={() => void togglePayment(payment)}>{payment.status === "paid" ? "✓ Pagado" : payment.status === "overdue" ? "Marcar pagado" : "Pendiente"}</button></div>)}</div>
+              </section>
+              <section className="drawer-section"><h3>Contrato</h3><div className="contract-actions"><a className="primary-button button-link" href={`/contrato/${selected.id}`} target="_blank" rel="noreferrer">Abrir contrato imprimible</a><a className="secondary-button button-link" href={privateConfig?.drive.pending || "#"} target="_blank" rel="noreferrer">Subir a pendientes</a></div>
+                <label className="pdf-field">Enlace del PDF firmado<input placeholder="Pega aquí el enlace de Drive" value={pdfUrl} onChange={(event) => setPdfUrl(event.target.value)} /></label>
+                <button className="save-link" type="button" disabled={saving} onClick={() => void saveSignedPdf()}>{saving ? "Guardando…" : "Guardar enlace firmado"}</button>
+                {selected.signedPdfUrl && <a className="signed-link" href={selected.signedPdfUrl} target="_blank" rel="noreferrer">✓ Abrir PDF firmado en Drive ↗</a>}
+              </section>
+              {selected.notes && <section className="drawer-section"><h3>Notas internas</h3><p className="notes">{selected.notes}</p></section>}
+            </div>
+          </aside>
+        </div>
+      )}
+    </main>
+  );
+}
