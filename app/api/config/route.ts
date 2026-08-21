@@ -1,7 +1,17 @@
 import { env } from "cloudflare:workers";
+import { checkPandaDoc } from "../../../lib/pandadoc";
 
 export async function GET() {
   const privateEnv = env as unknown as Record<string, string | undefined>;
+  const pandaDocKey = privateEnv.PANDADOC_API_KEY || "";
+  let pandaDocConnected = false;
+  if (pandaDocKey) {
+    try {
+      pandaDocConnected = await checkPandaDoc(pandaDocKey);
+    } catch {
+      pandaDocConnected = false;
+    }
+  }
   return Response.json({
     provider: {
       name: privateEnv.PROVIDER_NAME || "",
@@ -16,7 +26,8 @@ export async function GET() {
       signed: privateEnv.DRIVE_SIGNED_URL || "",
     },
     pandadoc: {
-      configured: Boolean(privateEnv.PANDADOC_API_KEY),
+      configured: Boolean(pandaDocKey),
+      connected: pandaDocConnected,
     },
   });
 }
