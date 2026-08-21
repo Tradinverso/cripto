@@ -26,7 +26,7 @@ type Student = {
   network: string;
   wallet: string;
   accessStatus: "active" | "paused";
-  contractStatus: "pending" | "signed";
+  contractStatus: "pending" | "signed" | "not_required";
   signedPdfUrl: string;
   notes: string;
   payments: Payment[];
@@ -45,9 +45,11 @@ const emptyForm = {
   email: "",
   phone: "",
   plan: 3,
+  installmentAmount: 510,
   currency: "USDT",
   network: "",
   wallet: "",
+  contractRequired: true,
   notes: "",
   dueDates: ["", "", "", ""],
 };
@@ -108,11 +110,16 @@ export function Dashboard() {
 
   const stats = useMemo(() => {
     const openPayments = students.flatMap((student) => student.payments).filter((payment) => payment.status !== "paid");
+    const receivable = openPayments.reduce<Record<string, number>>((totals, payment) => {
+      totals[payment.currency] = (totals[payment.currency] || 0) + payment.amount;
+      return totals;
+    }, {});
     return {
       active: students.filter((student) => student.accessStatus === "active").length,
-      receivable: openPayments.reduce((sum, payment) => sum + payment.amount, 0),
+      receivable,
       overdue: openPayments.filter((payment) => payment.status === "overdue").length,
       signed: students.filter((student) => student.contractStatus === "signed").length,
+      pendingContracts: students.filter((student) => student.contractStatus === "pending").length,
     };
   }, [students]);
 
@@ -191,9 +198,9 @@ export function Dashboard() {
 
         <section className="stats" aria-label="Resumen">
           <article className="stat-card"><span className="stat-icon blue">◎</span><div><p>Alumnos activos</p><strong>{stats.active}</strong><small>{students.length} registrados</small></div></article>
-          <article className="stat-card"><span className="stat-icon gold">◇</span><div><p>Por cobrar</p><strong>{stats.receivable.toLocaleString("es-ES")}</strong><small>USDT / USDC</small></div></article>
+          <article className="stat-card"><span className="stat-icon gold">◇</span><div><p>Por cobrar</p><strong>{Object.keys(stats.receivable).length ? Object.entries(stats.receivable).map(([currency, amount]) => `${amount.toLocaleString("es-ES")} ${currency}`).join(" · ") : "0"}</strong><small>Importes pendientes</small></div></article>
           <article className="stat-card"><span className="stat-icon red">!</span><div><p>Pagos vencidos</p><strong>{stats.overdue}</strong><small>{stats.overdue ? "Requieren seguimiento" : "Todo al día"}</small></div></article>
-          <article className="stat-card"><span className="stat-icon green">✓</span><div><p>Contratos firmados</p><strong>{stats.signed}</strong><small>{students.length - stats.signed} pendientes</small></div></article>
+          <article className="stat-card"><span className="stat-icon green">✓</span><div><p>Contratos firmados</p><strong>{stats.signed}</strong><small>{stats.pendingContracts} pendientes</small></div></article>
         </section>
 
         <section className="content-grid">
@@ -216,7 +223,7 @@ export function Dashboard() {
                 const next = student.payments.find((payment) => payment.status !== "paid");
                 return (
                   <button className="table-row clickable-row" role="row" key={student.id} type="button" onClick={() => openStudent(student)}>
-                    <span className="student-name"><b>{initials(student.fullName)}</b><span><strong>{student.fullName}</strong><small>{student.contractStatus === "signed" ? "Contrato firmado" : "Pendiente de firma"}</small></span></span>
+                    <span className="student-name"><b>{initials(student.fullName)}</b><span><strong>{student.fullName}</strong><small>{student.contractStatus === "signed" ? "Contrato firmado" : student.contractStatus === "not_required" ? "Sin contrato" : "Pendiente de firma"}</small></span></span>
                     <span>{student.plan} pagos · {student.installmentAmount} {student.currency}</span>
                     <span><strong>{paid} de {student.plan}</strong><i><em style={{ width: `${(paid / student.plan) * 100}%` }} /></i></span>
                     <span>{next ? formatDate(next.dueDate) : "Completado"}</span>
@@ -247,14 +254,16 @@ export function Dashboard() {
                 <label>DNI / Pasaporte<input required value={form.documentId} onChange={(e) => setForm({ ...form, documentId: e.target.value })} /></label>
                 <label>País<input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} /></label>
                 <label className="wide">Dirección<input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></label>
-                <label>Correo electrónico<input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
+                <label>Correo electrónico<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
                 <label>Teléfono<input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
               </div></div>
-              <div className="form-section"><h3>Plan y criptomoneda</h3><div className="form-grid">
-                <label>Plan<select value={form.plan} onChange={(e) => setForm({ ...form, plan: Number(e.target.value) })}><option value={3}>3 pagos de 510</option><option value={4}>4 pagos de 385</option></select></label>
-                <label>Criptomoneda<select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}><option>USDT</option><option>USDC</option></select></label>
-                <label>Red<input placeholder="Ej. TRC20, ERC20…" value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })} /></label>
-                <label className="wide">Wallet<input value={form.wallet} onChange={(e) => setForm({ ...form, wallet: e.target.value })} /></label>
+              <div className="form-section"><h3>Plan y forma de pago</h3><div className="form-grid">
+                <label>Plan<select value={form.plan} onChange={(e) => { const plan = Number(e.target.value); setForm({ ...form, plan, installmentAmount: form.currency === "EUR" ? (plan === 4 ? 375 : 500) : (plan === 4 ? 385 : 510) }); }}><option value={3}>3 pagos</option><option value={4}>4 pagos</option></select></label>
+                <label>Importe de cada pago<input required min="1" step="1" type="number" value={form.installmentAmount} onChange={(e) => setForm({ ...form, installmentAmount: Number(e.target.value) })} /></label>
+                <label>Moneda<select value={form.currency} onChange={(e) => { const currency = e.target.value; setForm({ ...form, currency, installmentAmount: currency === "EUR" ? (form.plan === 4 ? 375 : 500) : (form.plan === 4 ? 385 : 510), network: currency === "EUR" ? "Bizum" : "", wallet: currency === "EUR" ? "" : form.wallet }); }}><option>USDT</option><option>USDC</option><option>EUR</option></select></label>
+                {form.currency === "EUR" ? <label>Método de pago<select value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })}><option>Bizum</option></select></label> : <label>Red<input placeholder="Ej. TRC20, ERC20…" value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })} /></label>}
+                {form.currency !== "EUR" && <label className="wide">Wallet<input value={form.wallet} onChange={(e) => setForm({ ...form, wallet: e.target.value })} /></label>}
+                <label className="wide">Contrato<select value={form.contractRequired ? "required" : "not_required"} onChange={(e) => setForm({ ...form, contractRequired: e.target.value === "required" })}><option value="required">Requiere contrato</option><option value="not_required">Sin contrato</option></select></label>
               </div></div>
               <div className="form-section"><h3>Fechas de pago</h3><div className="dates-grid">{Array.from({ length: form.plan }, (_, index) => <label key={index}>Pago {index + 1}<input required type="date" value={form.dueDates[index]} onChange={(e) => { const dueDates = [...form.dueDates]; dueDates[index] = e.target.value; setForm({ ...form, dueDates }); }} /></label>)}</div></div>
               <div className="form-section"><label>Notas internas<textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label></div>
@@ -269,15 +278,15 @@ export function Dashboard() {
           <aside className="drawer" role="dialog" aria-modal="true" aria-label={`Ficha de ${selected.fullName}`}>
             <div className="drawer-header"><div className="student-hero"><b>{initials(selected.fullName)}</b><div><p className="eyebrow">FICHA DEL ALUMNO</p><h2>{selected.fullName}</h2><span>{selected.documentId} · {selected.country || "Sin país"}</span></div></div><button type="button" aria-label="Cerrar" onClick={() => setSelected(null)}>×</button></div>
             <div className="drawer-content">
-              <div className="detail-grid"><span><small>Correo</small><strong>{selected.email}</strong></span><span><small>Teléfono</small><strong>{selected.phone}</strong></span><span><small>Plan</small><strong>{selected.plan} × {selected.installmentAmount} {selected.currency}</strong></span><span><small>Red</small><strong>{selected.network || "Sin indicar"}</strong></span></div>
+              <div className="detail-grid"><span><small>Correo</small><strong>{selected.email || "Sin indicar"}</strong></span><span><small>Teléfono</small><strong>{selected.phone}</strong></span><span><small>Plan</small><strong>{selected.plan} × {selected.installmentAmount} {selected.currency}</strong></span><span><small>{selected.currency === "EUR" ? "Método" : "Red"}</small><strong>{selected.network || "Sin indicar"}</strong></span></div>
               <section className="drawer-section" id="pagos"><div className="section-title"><h3>Calendario de pagos</h3><mark className={`status ${selected.accessStatus === "active" ? "active" : "paused"}`}>{selected.accessStatus === "active" ? "Acceso activo" : "Acceso pausado"}</mark></div>
                 <div className="payments-list">{selected.payments.map((payment) => <div className="payment-item" key={payment.id}><span><b>{payment.installmentNo}</b><span><strong>{payment.amount} {payment.currency}</strong><small>Vence {formatDate(payment.dueDate)}</small></span></span><button className={`payment-toggle ${payment.status}`} type="button" onClick={() => void togglePayment(payment)}>{payment.status === "paid" ? "✓ Pagado" : payment.status === "overdue" ? "Marcar pagado" : "Pendiente"}</button></div>)}</div>
               </section>
-              <section className="drawer-section"><h3>Contrato</h3><div className="contract-actions"><a className="primary-button button-link" href={`/contrato/${selected.id}`} target="_blank" rel="noreferrer">Abrir contrato imprimible</a><a className="secondary-button button-link" href={privateConfig?.drive.pending || "#"} target="_blank" rel="noreferrer">Subir a pendientes</a></div>
+              {selected.contractStatus === "not_required" ? <section className="drawer-section"><h3>Contrato</h3><p className="notes">Este alumno está registrado únicamente para seguimiento interno y no requiere contrato.</p></section> : <section className="drawer-section"><h3>Contrato</h3><div className="contract-actions"><a className="primary-button button-link" href={`/contrato/${selected.id}`} target="_blank" rel="noreferrer">Abrir contrato imprimible</a><a className="secondary-button button-link" href={privateConfig?.drive.pending || "#"} target="_blank" rel="noreferrer">Subir a pendientes</a></div>
                 <label className="pdf-field">Enlace del PDF firmado<input placeholder="Pega aquí el enlace de Drive" value={pdfUrl} onChange={(event) => setPdfUrl(event.target.value)} /></label>
                 <button className="save-link" type="button" disabled={saving} onClick={() => void saveSignedPdf()}>{saving ? "Guardando…" : "Guardar enlace firmado"}</button>
                 {selected.signedPdfUrl && <a className="signed-link" href={selected.signedPdfUrl} target="_blank" rel="noreferrer">✓ Abrir PDF firmado en Drive ↗</a>}
-              </section>
+              </section>}
               {selected.notes && <section className="drawer-section"><h3>Notas internas</h3><p className="notes">{selected.notes}</p></section>}
             </div>
           </aside>

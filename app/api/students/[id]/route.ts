@@ -11,7 +11,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const body = (await request.json()) as { signedPdfUrl?: string; contractStatus?: string; accessStatus?: string; notes?: string };
     const values: Record<string, string> = {};
     if (typeof body.signedPdfUrl === "string") values.signedPdfUrl = body.signedPdfUrl.trim();
-    if (body.contractStatus === "signed" || body.contractStatus === "pending") values.contractStatus = body.contractStatus;
+    if (body.contractStatus === "signed" || body.contractStatus === "pending" || body.contractStatus === "not_required") values.contractStatus = body.contractStatus;
     if (body.accessStatus === "active" || body.accessStatus === "paused") values.accessStatus = body.accessStatus;
     if (typeof body.notes === "string") values.notes = body.notes.trim();
     if (!studentId || Object.keys(values).length === 0) return Response.json({ error: "No hay cambios válidos." }, { status: 400 });

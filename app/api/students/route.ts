@@ -11,9 +11,11 @@ type NewStudent = {
   email?: string;
   phone?: string;
   plan?: number;
+  installmentAmount?: number;
   currency?: string;
   network?: string;
   wallet?: string;
+  contractRequired?: boolean;
   notes?: string;
   dueDates?: string[];
 };
@@ -54,13 +56,13 @@ export async function POST(request: Request) {
     const email = body.email?.trim() || "";
     const phone = body.phone?.trim() || "";
     const plan = body.plan === 4 ? 4 : 3;
-    const currency = body.currency === "USDC" ? "USDC" : "USDT";
+    const installmentAmount = Number(body.installmentAmount);
+    const currency = body.currency === "EUR" ? "EUR" : body.currency === "USDC" ? "USDC" : "USDT";
     const dueDates = (body.dueDates || []).slice(0, plan);
-    if (!fullName || !documentId || !email || !phone || dueDates.length !== plan || dueDates.some((date) => !date)) {
+    if (!fullName || !documentId || !phone || !Number.isInteger(installmentAmount) || installmentAmount <= 0 || dueDates.length !== plan || dueDates.some((date) => !date)) {
       return Response.json({ error: "Completa los datos obligatorios y todas las fechas de pago." }, { status: 400 });
     }
 
-    const installmentAmount = plan === 4 ? 385 : 510;
     const db = getDb();
     const [student] = await db.insert(students).values({
       fullName,
@@ -74,6 +76,7 @@ export async function POST(request: Request) {
       currency,
       network: body.network?.trim() || "",
       wallet: body.wallet?.trim() || "",
+      contractStatus: body.contractRequired === false ? "not_required" : "pending",
       notes: body.notes?.trim() || "",
     }).returning();
     await db.insert(payments).values(dueDates.map((dueDate, index) => ({
