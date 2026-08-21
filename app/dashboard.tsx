@@ -70,6 +70,7 @@ export function Dashboard() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [activeView, setActiveView] = useState<"panel" | "students" | "payments" | "contracts">("panel");
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<Student | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -157,7 +158,7 @@ export function Dashboard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: payment.status === "paid" ? "pending" : "paid" }),
     });
-    await loadStudents(selected.id);
+    await loadStudents(selected?.id);
   }
 
   async function saveSignedPdf() {
@@ -180,15 +181,25 @@ export function Dashboard() {
     setPdfUrl(student.signedPdfUrl || "");
   }
 
+  const viewCopy = {
+    panel: ["Control de contratos", "Alumnos, cobros y accesos en un solo lugar."],
+    students: ["Alumnos", "Fichas, planes y estado de acceso."],
+    payments: ["Pagos", "Cuotas cobradas, pendientes y vencidas."],
+    contracts: ["Contratos", "Seguimiento de firmas y documentos."],
+  }[activeView];
+  const paymentRows = students
+    .flatMap((student) => student.payments.map((payment) => ({ student, payment })))
+    .sort((left, right) => left.payment.dueDate.localeCompare(right.payment.dueDate));
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark"><span>T</span></div><div><strong>TRADINVERSO</strong><span>Gestión privada</span></div></div>
         <nav aria-label="Navegación principal">
-          <a className="nav-item active" href="#panel"><span>▦</span>Panel</a>
-          <a className="nav-item" href="#alumnos"><span>◎</span>Alumnos</a>
-          <a className="nav-item" href="#pagos"><span>◇</span>Pagos</a>
-          <a className="nav-item" href="#contratos"><span>▤</span>Contratos</a>
+          <button className={`nav-item ${activeView === "panel" ? "active" : ""}`} type="button" onClick={() => setActiveView("panel")}><span>▦</span>Panel</button>
+          <button className={`nav-item ${activeView === "students" ? "active" : ""}`} type="button" onClick={() => setActiveView("students")}><span>◎</span>Alumnos</button>
+          <button className={`nav-item ${activeView === "payments" ? "active" : ""}`} type="button" onClick={() => setActiveView("payments")}><span>◇</span>Pagos</button>
+          <button className={`nav-item ${activeView === "contracts" ? "active" : ""}`} type="button" onClick={() => setActiveView("contracts")}><span>▤</span>Contratos</button>
         </nav>
         <a className="drive-card" href={privateConfig?.drive.root || "#"} target="_blank" rel="noreferrer"><span className="drive-icon">D</span><span><strong>Google Drive</strong><small>Carpeta conectada</small></span><b>↗</b></a>
         <div className="profile"><div className="avatar">{initials(privateConfig?.provider.name || "Administrador")}</div><span><strong>{privateConfig?.provider.name || "Administrador"}</strong><small>Administrador</small></span></div>
@@ -196,7 +207,7 @@ export function Dashboard() {
 
       <section className="workspace" id="panel">
         <header className="topbar">
-          <div><p className="eyebrow">GESTIÓN INTERNA</p><h1>Control de contratos</h1><p>Alumnos, cobros y accesos en un solo lugar.</p></div>
+          <div><p className="eyebrow">GESTIÓN INTERNA</p><h1>{viewCopy[0]}</h1><p>{viewCopy[1]}</p></div>
           <div className="topbar-actions"><form action="/api/auth/logout" method="post"><button className="logout-button" type="submit">Cerrar sesión</button></form><button className="primary-button" type="button" onClick={() => setShowForm(true)}><span>＋</span>Nuevo alumno</button></div>
         </header>
 
@@ -210,7 +221,7 @@ export function Dashboard() {
           <article className="stat-card"><span className="stat-icon violet">▤</span><div><p>Contratos firmados</p><strong>{stats.signed}</strong><small>{stats.pendingContracts} pendientes</small></div></article>
         </section>
 
-        <section className="content-grid">
+        {(activeView === "panel" || activeView === "students") && <section className={`content-grid ${activeView === "students" ? "single" : ""}`}>
           <article className="panel students-panel" id="alumnos">
             <div className="panel-heading panel-heading-stack">
               <div><h2>Seguimiento de alumnos</h2><p>Próximos pagos y estado de acceso</p></div>
@@ -241,14 +252,40 @@ export function Dashboard() {
             </div>
           </article>
 
-          <aside className="panel quick-panel" id="contratos">
+          {activeView === "panel" && <aside className="panel quick-panel" id="contratos">
             <div className="panel-heading"><div><h2>Acciones rápidas</h2><p>Tu operativa diaria</p></div></div>
             <button className="quick-action" type="button" onClick={() => setShowForm(true)}><span className="quick-icon">＋</span><span><strong>Registrar alumno</strong><small>Crear ficha y calendario</small></span><b>›</b></button>
             <a className="quick-action" href={privateConfig?.drive.pending || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">▤</span><span><strong>Pendientes de firma</strong><small>Abrir carpeta de Drive</small></span><b>›</b></a>
             <a className="quick-action" href={privateConfig?.drive.signed || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">↑</span><span><strong>Contratos firmados</strong><small>PDF privados en Drive</small></span><b>›</b></a>
             <div className="drive-health"><span>✓</span><div><strong>Drive conectado</strong><small>4 carpetas preparadas</small></div></div>
-          </aside>
-        </section>
+          </aside>}
+        </section>}
+
+        {activeView === "payments" && <article className="panel view-panel">
+          <div className="panel-heading"><div><h2>Calendario general de pagos</h2><p>Todos los movimientos ordenados por fecha</p></div></div>
+          <div className="view-table" role="table" aria-label="Pagos">
+            <div className="view-table-row view-table-head" role="row"><span>ALUMNO</span><span>CUOTA</span><span>IMPORTE</span><span>FECHA</span><span>ESTADO</span></div>
+            {!loading && paymentRows.length === 0 && <div className="empty-state"><span>◇</span><strong>Aún no hay pagos</strong><p>Los calendarios aparecerán al registrar alumnos.</p></div>}
+            {paymentRows.map(({ student, payment }) => <div className="view-table-row" role="row" key={payment.id}>
+              <button className="student-link" type="button" onClick={() => openStudent(student)}>{student.fullName}</button>
+              <span>{payment.installmentNo} de {student.plan}</span><strong>{payment.amount} {payment.currency}</strong><span>{formatDate(payment.dueDate)}</span>
+              <button className={`payment-toggle ${payment.status}`} type="button" onClick={() => void togglePayment(payment)}>{payment.status === "paid" ? "✓ Pagado" : payment.status === "overdue" ? "Marcar pagado" : "Pendiente"}</button>
+            </div>)}
+          </div>
+        </article>}
+
+        {activeView === "contracts" && <article className="panel view-panel">
+          <div className="panel-heading"><div><h2>Estado de contratos</h2><p>Firmados, pendientes y alumnos sin contrato</p></div></div>
+          <div className="view-table" role="table" aria-label="Contratos">
+            <div className="view-table-row contracts-row view-table-head" role="row"><span>ALUMNO</span><span>PLAN</span><span>ESTADO</span><span>DOCUMENTO</span></div>
+            {!loading && students.length === 0 && <div className="empty-state"><span>▤</span><strong>Aún no hay alumnos</strong><p>Los contratos aparecerán al registrar alumnos.</p></div>}
+            {students.map((student) => <div className="view-table-row contracts-row" role="row" key={student.id}>
+              <button className="student-link" type="button" onClick={() => openStudent(student)}>{student.fullName}</button><span>{student.plan} × {student.installmentAmount} {student.currency}</span>
+              <mark className={`status ${student.contractStatus === "signed" ? "active" : student.contractStatus === "not_required" ? "paused" : "warning"}`}>{student.contractStatus === "signed" ? "Firmado" : student.contractStatus === "not_required" ? "No requerido" : "Pendiente"}</mark>
+              {student.signedPdfUrl ? <a className="signed-link compact-link" href={student.signedPdfUrl} target="_blank" rel="noreferrer">Abrir PDF ↗</a> : <span>Sin documento</span>}
+            </div>)}
+          </div>
+        </article>}
       </section>
 
       {showForm && (
