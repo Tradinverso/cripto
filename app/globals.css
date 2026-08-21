@@ -203,6 +203,14 @@ nav { display:grid; gap:7px; }
 .pdf-field { margin-top:12px; }
 .save-link { margin-top:8px; border:0; background:#e9edf3; color:#415169; border-radius:7px; padding:9px 11px; font-size:10px; font-weight:800; cursor:pointer; }
 .signed-link { display:block; margin-top:11px; color:#257752; text-decoration:none; font-size:10px; font-weight:800; }
+.pandadoc-state { margin-top:12px; border:1px solid #e0e5ec; background:#f7f9fb; border-radius:9px; padding:11px; display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:10px; }
+.pandadoc-state>span { width:32px; height:32px; display:grid; place-items:center; border-radius:8px; background:#0b74de; color:#fff; font-size:10px; font-weight:900; }
+.pandadoc-state strong,.pandadoc-state small { display:block; }
+.pandadoc-state strong { font-size:10px; }
+.pandadoc-state small { color:#7f8b9c; font-size:9px; margin-top:3px; }
+.pandadoc-state>button { border:0; background:transparent; color:#46607f; padding:6px; font-size:9px; font-weight:800; cursor:pointer; }
+.pandadoc-state.complete { border-color:#cce7d7; background:#edf8f2; }
+.pandadoc-state.complete>span { background:#27845b; }
 .notes { color:#657286; background:#f7f8fa; border-radius:8px; padding:12px; margin:0; font-size:10px; line-height:1.55; }
 
 .contract-page { min-height:100vh; padding:40px 20px 70px; background:#edf0f4; }

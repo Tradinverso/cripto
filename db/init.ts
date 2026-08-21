@@ -24,6 +24,10 @@ export async function ensureDatabase() {
       access_status TEXT NOT NULL DEFAULT 'active',
       contract_status TEXT NOT NULL DEFAULT 'pending',
       signed_pdf_url TEXT NOT NULL DEFAULT '',
+      pandadoc_document_id TEXT NOT NULL DEFAULT '',
+      pandadoc_status TEXT NOT NULL DEFAULT '',
+      pandadoc_sent_at TEXT NOT NULL DEFAULT '',
+      pandadoc_updated_at TEXT NOT NULL DEFAULT '',
       notes TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`),

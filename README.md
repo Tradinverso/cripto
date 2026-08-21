@@ -12,13 +12,14 @@ Aplicación interna para registrar alumnos que pagan en USDT o USDC, controlar s
 - Contrato personalizado imprimible y exportable como PDF.
 - Enlaces directos a las carpetas privadas de Google Drive.
 - Registro del enlace del contrato firmado en la ficha del alumno.
+- Generación del mismo acuerdo en DOCX, envío por PandaDoc y seguimiento del estado de firma.
 - Acceso protegido mediante una única contraseña y cookie de sesión privada.
 
 ## Privacidad
 
 Los alumnos, pagos y contratos no se guardan en este repositorio. La base local de desarrollo vive en `.wrangler/`, los secretos en `.env.local` y ambos están excluidos de Git.
 
-No escribas la contraseña real en el código ni en un commit. Copia `.env.example` como `.env.local` para trabajar localmente y configura `APP_PASSWORD` y `SESSION_SECRET` como secretos en el servicio donde se publique la aplicación.
+No escribas contraseñas ni claves de API reales en el código o en un commit. Copia `.env.example` como `.env.local` para trabajar localmente y configura `APP_PASSWORD`, `SESSION_SECRET` y `PANDADOC_API_KEY` como secretos en el servicio donde se publique la aplicación.
 
 ## Desarrollo local
 

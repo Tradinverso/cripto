@@ -15,5 +15,8 @@ export async function GET() {
       pending: privateEnv.DRIVE_PENDING_URL || "",
       signed: privateEnv.DRIVE_SIGNED_URL || "",
     },
+    pandadoc: {
+      configured: Boolean(privateEnv.PANDADOC_API_KEY),
+    },
   });
 }

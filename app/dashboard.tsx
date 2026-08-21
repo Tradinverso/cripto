@@ -28,6 +28,10 @@ type Student = {
   accessStatus: "active" | "paused";
   contractStatus: "pending" | "signed" | "not_required";
   signedPdfUrl: string;
+  pandadocDocumentId: string;
+  pandadocStatus: string;
+  pandadocSentAt: string;
+  pandadocUpdatedAt: string;
   notes: string;
   payments: Payment[];
 };
@@ -35,6 +39,7 @@ type Student = {
 type PrivateConfig = {
   provider: { name: string };
   drive: { root: string; pending: string; signed: string };
+  pandadoc: { configured: boolean };
 };
 
 const emptyForm = {
@@ -63,6 +68,19 @@ function initials(name: string) {
   return name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 }
 
+function pandaDocLabel(status: string) {
+  return ({
+    "document.uploaded": "Preparando",
+    "document.draft": "Borrador",
+    "document.sent": "Enviado",
+    "document.viewed": "Visto por el alumno",
+    "document.completed": "Firmado",
+    "document.declined": "Rechazado",
+    "document.voided": "Caducado",
+    "document.error": "Error",
+  } as Record<string, string>)[status] || (status ? status.replace("document.", "") : "No enviado");
+}
+
 export function Dashboard() {
   const [students, setStudents] = useState<Student[]>([]);
   const [privateConfig, setPrivateConfig] = useState<PrivateConfig | null>(null);
@@ -75,6 +93,7 @@ export function Dashboard() {
   const [selected, setSelected] = useState<Student | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [pandadocBusy, setPandadocBusy] = useState(false);
   const [pdfUrl, setPdfUrl] = useState("");
 
   const loadStudents = useCallback(async (selectedId?: number) => {
@@ -173,6 +192,38 @@ export function Dashboard() {
     if (response.ok) {
       setPdfUrl("");
       await loadStudents(selected.id);
+    }
+  }
+
+  async function sendPandaDocContract() {
+    if (!selected) return;
+    setPandadocBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/students/${selected.id}/pandadoc`, { method: "POST" });
+      const payload = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "No se pudo enviar el contrato.");
+      await loadStudents(selected.id);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo enviar el contrato.");
+    } finally {
+      setPandadocBusy(false);
+    }
+  }
+
+  async function refreshPandaDocStatus() {
+    if (!selected?.pandadocDocumentId) return;
+    setPandadocBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/students/${selected.id}/pandadoc`, { cache: "no-store" });
+      const payload = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "No se pudo actualizar el estado de firma.");
+      await loadStudents(selected.id);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo actualizar el estado de firma.");
+    } finally {
+      setPandadocBusy(false);
     }
   }
 
@@ -282,7 +333,7 @@ export function Dashboard() {
             {students.map((student) => <div className="view-table-row contracts-row" role="row" key={student.id}>
               <button className="student-link" type="button" onClick={() => openStudent(student)}>{student.fullName}</button><span>{student.plan} × {student.installmentAmount} {student.currency}</span>
               <mark className={`status ${student.contractStatus === "signed" ? "active" : student.contractStatus === "not_required" ? "paused" : "warning"}`}>{student.contractStatus === "signed" ? "Firmado" : student.contractStatus === "not_required" ? "No requerido" : "Pendiente"}</mark>
-              {student.signedPdfUrl ? <a className="signed-link compact-link" href={student.signedPdfUrl} target="_blank" rel="noreferrer">Abrir PDF ↗</a> : <span>Sin documento</span>}
+              {student.signedPdfUrl ? <a className="signed-link compact-link" href={student.signedPdfUrl} target="_blank" rel="noreferrer">Abrir documento ↗</a> : student.pandadocDocumentId ? <a className="signed-link compact-link" href={`https://app.pandadoc.com/a/#/documents/${student.pandadocDocumentId}`} target="_blank" rel="noreferrer">{pandaDocLabel(student.pandadocStatus)} ↗</a> : <span>Sin documento</span>}
             </div>)}
           </div>
         </article>}
@@ -326,7 +377,9 @@ export function Dashboard() {
               <section className="drawer-section" id="pagos"><div className="section-title"><h3>Calendario de pagos</h3><mark className={`status ${selected.accessStatus === "active" ? "active" : "paused"}`}>{selected.accessStatus === "active" ? "Acceso activo" : "Acceso pausado"}</mark></div>
                 <div className="payments-list">{selected.payments.map((payment) => <div className="payment-item" key={payment.id}><span><b>{payment.installmentNo}</b><span><strong>{payment.amount} {payment.currency}</strong><small>Vence {formatDate(payment.dueDate)}</small></span></span><button className={`payment-toggle ${payment.status}`} type="button" onClick={() => void togglePayment(payment)}>{payment.status === "paid" ? "✓ Pagado" : payment.status === "overdue" ? "Marcar pagado" : "Pendiente"}</button></div>)}</div>
               </section>
-              {selected.contractStatus === "not_required" ? <section className="drawer-section"><h3>Contrato</h3><p className="notes">Este alumno está registrado únicamente para seguimiento interno y no requiere contrato.</p></section> : <section className="drawer-section"><h3>Contrato</h3><div className="contract-actions"><a className="primary-button button-link" href={`/contrato/${selected.id}`} target="_blank" rel="noreferrer">Abrir contrato imprimible</a><a className="secondary-button button-link" href={privateConfig?.drive.pending || "#"} target="_blank" rel="noreferrer">Subir a pendientes</a></div>
+              {selected.contractStatus === "not_required" ? <section className="drawer-section"><h3>Contrato</h3><p className="notes">Este alumno está registrado únicamente para seguimiento interno y no requiere contrato.</p></section> : <section className="drawer-section"><h3>Contrato</h3><div className="contract-actions"><a className="secondary-button button-link" href={`/contrato/${selected.id}`} target="_blank" rel="noreferrer">Abrir contrato imprimible</a><button className="primary-button button-link" type="button" disabled={pandadocBusy || !privateConfig?.pandadoc.configured || !selected.email} onClick={() => void sendPandaDocContract()}>{pandadocBusy ? "Conectando…" : selected.pandadocDocumentId ? "Revisar en PandaDoc" : "Enviar a PandaDoc"}</button></div>
+                <div className={`pandadoc-state ${selected.pandadocStatus === "document.completed" ? "complete" : ""}`}><span>PD</span><div><strong>{privateConfig?.pandadoc.configured ? pandaDocLabel(selected.pandadocStatus) : "PandaDoc pendiente de conectar"}</strong><small>{selected.pandadocDocumentId ? "Seguimiento automático de la firma" : selected.email ? "Se enviará al correo del alumno" : "Añade el correo del alumno para poder enviarlo"}</small></div>{selected.pandadocDocumentId && <button type="button" disabled={pandadocBusy} onClick={() => void refreshPandaDocStatus()}>Actualizar</button>}</div>
+                {selected.pandadocDocumentId && <a className="signed-link" href={`https://app.pandadoc.com/a/#/documents/${selected.pandadocDocumentId}`} target="_blank" rel="noreferrer">Abrir documento en PandaDoc ↗</a>}
                 <label className="pdf-field">Enlace del PDF firmado<input placeholder="Pega aquí el enlace de Drive" value={pdfUrl} onChange={(event) => setPdfUrl(event.target.value)} /></label>
                 <button className="save-link" type="button" disabled={saving} onClick={() => void saveSignedPdf()}>{saving ? "Guardando…" : "Guardar enlace firmado"}</button>
                 {selected.signedPdfUrl && <a className="signed-link" href={selected.signedPdfUrl} target="_blank" rel="noreferrer">✓ Abrir PDF firmado en Drive ↗</a>}

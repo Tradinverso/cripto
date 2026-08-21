@@ -17,6 +17,10 @@ export const students = sqliteTable("students", {
   accessStatus: text("access_status").notNull().default("active"),
   contractStatus: text("contract_status").notNull().default("pending"),
   signedPdfUrl: text("signed_pdf_url").notNull().default(""),
+  pandadocDocumentId: text("pandadoc_document_id").notNull().default(""),
+  pandadocStatus: text("pandadoc_status").notNull().default(""),
+  pandadocSentAt: text("pandadoc_sent_at").notNull().default(""),
+  pandadocUpdatedAt: text("pandadoc_updated_at").notNull().default(""),
   notes: text("notes").notNull().default(""),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
