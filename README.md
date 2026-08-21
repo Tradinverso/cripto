@@ -35,6 +35,8 @@ En el ordenador de administración también puede abrirse con `ABRIR PLATAFORMA.
 
 El repositorio de GitHub es la fuente del código. Cloudflare Workers ejecuta la aplicación, sirve los archivos estáticos y guarda alumnos y pagos en la base D1 `tradinverso-contratos`.
 
+Cada cambio enviado a la rama `main` activa GitHub Actions, compila la plataforma, aplica las migraciones pendientes y publica la nueva versión en Cloudflare Workers.
+
 ```bash
 pnpm build
 pnpm deploy
