@@ -110,13 +110,19 @@ export function Dashboard() {
 
   const stats = useMemo(() => {
     const openPayments = students.flatMap((student) => student.payments).filter((payment) => payment.status !== "paid");
+    const paidPayments = students.flatMap((student) => student.payments).filter((payment) => payment.status === "paid");
     const receivable = openPayments.reduce<Record<string, number>>((totals, payment) => {
+      totals[payment.currency] = (totals[payment.currency] || 0) + payment.amount;
+      return totals;
+    }, {});
+    const collected = paidPayments.reduce<Record<string, number>>((totals, payment) => {
       totals[payment.currency] = (totals[payment.currency] || 0) + payment.amount;
       return totals;
     }, {});
     return {
       active: students.filter((student) => student.accessStatus === "active").length,
       receivable,
+      collected,
       overdue: openPayments.filter((payment) => payment.status === "overdue").length,
       signed: students.filter((student) => student.contractStatus === "signed").length,
       pendingContracts: students.filter((student) => student.contractStatus === "pending").length,
@@ -199,8 +205,9 @@ export function Dashboard() {
         <section className="stats" aria-label="Resumen">
           <article className="stat-card"><span className="stat-icon blue">◎</span><div><p>Alumnos activos</p><strong>{stats.active}</strong><small>{students.length} registrados</small></div></article>
           <article className="stat-card"><span className="stat-icon gold">◇</span><div><p>Por cobrar</p><strong>{Object.keys(stats.receivable).length ? Object.entries(stats.receivable).map(([currency, amount]) => `${amount.toLocaleString("es-ES")} ${currency}`).join(" · ") : "0"}</strong><small>Importes pendientes</small></div></article>
+          <article className="stat-card"><span className="stat-icon green">✓</span><div><p>Cobrado</p><strong>{Object.keys(stats.collected).length ? Object.entries(stats.collected).map(([currency, amount]) => `${amount.toLocaleString("es-ES")} ${currency}`).join(" · ") : "0"}</strong><small>Pagos recibidos</small></div></article>
           <article className="stat-card"><span className="stat-icon red">!</span><div><p>Pagos vencidos</p><strong>{stats.overdue}</strong><small>{stats.overdue ? "Requieren seguimiento" : "Todo al día"}</small></div></article>
-          <article className="stat-card"><span className="stat-icon green">✓</span><div><p>Contratos firmados</p><strong>{stats.signed}</strong><small>{stats.pendingContracts} pendientes</small></div></article>
+          <article className="stat-card"><span className="stat-icon violet">▤</span><div><p>Contratos firmados</p><strong>{stats.signed}</strong><small>{stats.pendingContracts} pendientes</small></div></article>
         </section>
 
         <section className="content-grid">
