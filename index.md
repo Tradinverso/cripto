@@ -7,7 +7,7 @@ permalink: /
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="refresh" content="0; url=https://contratos.tradinverso.com">
+    <meta http-equiv="refresh" content="0; url=https://tradinverso-contratos.tradinverso.workers.dev">
     <title>Acceso privado | TRADINVERSO</title>
     <style>
       body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f4f5f7; color: #17243c; font-family: Arial, sans-serif; }
@@ -16,13 +16,13 @@ permalink: /
       p { color: #718096; line-height: 1.55; }
       a { display: inline-block; margin-top: 10px; padding: 12px 18px; border-radius: 9px; background: #17243c; color: white; font-weight: 700; text-decoration: none; }
     </style>
-    <script>window.location.replace("https://contratos.tradinverso.com");</script>
+    <script>window.location.replace("https://tradinverso-contratos.tradinverso.workers.dev");</script>
   </head>
   <body>
     <main>
       <h1>TRADINVERSO</h1>
       <p>Abriendo la plataforma privada de contratos…</p>
-      <a href="https://contratos.tradinverso.com">Entrar en la plataforma</a>
+      <a href="https://tradinverso-contratos.tradinverso.workers.dev">Entrar en la plataforma</a>
     </main>
   </body>
 </html>
