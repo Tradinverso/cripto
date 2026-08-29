@@ -33,11 +33,21 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const data = await studentData(studentId);
     if (!data) return Response.json({ error: "Alumno no encontrado." }, { status: 404 });
     if (!data.student.pandadocDocumentId) return Response.json({ configured: Boolean(privateEnv().PANDADOC_API_KEY), status: "" });
-    const apiKey = privateEnv().PANDADOC_API_KEY || "";
+    const settings = privateEnv();
+    const apiKey = settings.PANDADOC_API_KEY || "";
     if (!apiKey) return Response.json({ error: "PandaDoc todavía no está conectado al servidor." }, { status: 503 });
     const status = await getPandaDocStatus(apiKey, data.student.pandadocDocumentId);
-    await savePandaDocStatus(studentId, data.student.pandadocDocumentId, status);
-    return Response.json({ status, documentId: data.student.pandadocDocumentId, url: pandaDocAdminUrl(data.student.pandadocDocumentId) });
+    const values = await savePandaDocStatus(studentId, data.student.pandadocDocumentId, status, false, {
+      apiKey,
+      webhookUrl: settings.DRIVE_ARCHIVE_WEBHOOK_URL,
+      secret: settings.DRIVE_ARCHIVE_SECRET,
+      studentName: data.student.fullName,
+    });
+    return Response.json({
+      status,
+      documentId: data.student.pandadocDocumentId,
+      url: values.signedPdfUrl || pandaDocAdminUrl(data.student.pandadocDocumentId),
+    });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "No se pudo consultar PandaDoc." }, { status: 500 });
   }
@@ -62,8 +72,13 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     if (documentId) {
       status = await getPandaDocStatus(apiKey, documentId);
       if (["document.sent", "document.viewed", "document.completed", "document.waiting_approval"].includes(status)) {
-        await savePandaDocStatus(studentId, documentId, status);
-        return Response.json({ status, documentId, url: pandaDocAdminUrl(documentId), alreadySent: true });
+        const values = await savePandaDocStatus(studentId, documentId, status, false, {
+          apiKey,
+          webhookUrl: settings.DRIVE_ARCHIVE_WEBHOOK_URL,
+          secret: settings.DRIVE_ARCHIVE_SECRET,
+          studentName: student.fullName,
+        });
+        return Response.json({ status, documentId, url: values.signedPdfUrl || pandaDocAdminUrl(documentId), alreadySent: true });
       }
     }
 

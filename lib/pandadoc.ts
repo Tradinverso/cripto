@@ -75,6 +75,22 @@ export async function getPandaDocStatus(apiKey: string, documentId: string) {
   return payload.status || "";
 }
 
+export async function downloadCompletedPandaDoc(apiKey: string, documentId: string) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const response = await fetch(`${API_ROOT}/documents/${encodeURIComponent(documentId)}/download-protected`, {
+      headers: { ...headers(apiKey), Accept: "application/pdf" },
+    });
+    if (response.ok) return new Uint8Array(await response.arrayBuffer());
+    if (response.status === 202 && attempt < 5) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      continue;
+    }
+    const payload = await responsePayload(response);
+    throw pandaDocError("descargar el contrato firmado", response, payload);
+  }
+  throw new Error("PandaDoc todavía está preparando el PDF firmado.");
+}
+
 export async function waitForPandaDocDraft(apiKey: string, documentId: string) {
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const status = await getPandaDocStatus(apiKey, documentId);

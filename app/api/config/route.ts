@@ -24,6 +24,7 @@ export async function GET() {
       root: privateEnv.DRIVE_ROOT_URL || "",
       pending: privateEnv.DRIVE_PENDING_URL || "",
       signed: privateEnv.DRIVE_SIGNED_URL || "",
+      archiveConfigured: Boolean(privateEnv.DRIVE_ARCHIVE_WEBHOOK_URL && privateEnv.DRIVE_ARCHIVE_SECRET),
     },
     pandadoc: {
       configured: Boolean(pandaDocKey),

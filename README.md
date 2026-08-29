@@ -13,7 +13,7 @@ Aplicación interna para registrar alumnos que pagan en USDT o USDC, controlar s
 - Pausa del acceso cuando existe un pago vencido.
 - Contrato personalizado imprimible y exportable como PDF.
 - Enlaces directos a las carpetas privadas de Google Drive.
-- Registro del enlace del contrato firmado en la ficha del alumno.
+- Archivado automático del PDF firmado en Drive y registro de su enlace en la ficha del alumno.
 - Generación del mismo acuerdo en DOCX, envío por PandaDoc y seguimiento del estado de firma.
 - Acceso protegido mediante una única contraseña y cookie de sesión privada.
 
@@ -57,4 +57,10 @@ No existe un único `index.html` porque esta aplicación tiene rutas de servidor
 
 ## Datos de producción
 
-La publicación utiliza una base D1 independiente. Los datos locales nunca se copian automáticamente a producción ni se versionan en GitHub. La contraseña, la clave de sesión, los datos del proveedor y los enlaces de Drive se configuran como secretos cifrados de Cloudflare.
+La publicación utiliza una base D1 independiente. Los datos locales nunca se copian automáticamente a producción ni se versionan en GitHub. La contraseña, la clave de sesión, los datos del proveedor, el acceso a PandaDoc y el enlace seguro de archivado en Drive se configuran como secretos cifrados de Cloudflare.
+
+## Trabajo desde otro ordenador
+
+El trabajo diario no depende de este PC. Desde cualquier ordenador se puede abrir `contratos.tradinverso.com`, iniciar sesión y gestionar alumnos, pagos, contratos y firmas. PandaDoc, Drive y la base de datos funcionan en la nube.
+
+Solo hace falta trabajar con el repositorio cuando se quiera modificar o publicar una nueva versión de la aplicación. El archivo `PROMPT-GESTION-CONTRATOS.md` contiene el mensaje preparado para iniciar un chat de gestión desde Codex en otro ordenador.

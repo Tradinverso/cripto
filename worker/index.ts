@@ -8,6 +8,8 @@ interface Env {
   APP_PASSWORD?: string;
   SESSION_SECRET?: string;
   PANDADOC_API_KEY?: string;
+  DRIVE_ARCHIVE_WEBHOOK_URL?: string;
+  DRIVE_ARCHIVE_SECRET?: string;
   USDT_NETWORK?: string;
   USDT_WALLET?: string;
   IMAGES?: {

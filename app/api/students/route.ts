@@ -3,7 +3,7 @@ import { env } from "cloudflare:workers";
 import { getDb } from "../../../db";
 import { ensureDatabase } from "../../../db/init";
 import { payments, students } from "../../../db/schema";
-import { getPandaDocStatus, isPandaDocCompleted, pandaDocAdminUrl } from "../../../lib/pandadoc";
+import { getPandaDocStatus } from "../../../lib/pandadoc";
 import { savePandaDocStatus } from "../../../lib/pandadoc-sync";
 
 type NewStudent = {
@@ -33,30 +33,37 @@ export async function GET(request: Request) {
       ? await db.select().from(students).where(eq(students.id, requestedId)).limit(1)
       : await db.select().from(students).orderBy(desc(students.createdAt), desc(students.id));
     if (url.searchParams.get("syncPandaDoc") === "1") {
-      const apiKey = (env as unknown as Record<string, string | undefined>).PANDADOC_API_KEY || "";
+      const settings = env as unknown as Record<string, string | undefined>;
+      const apiKey = settings.PANDADOC_API_KEY || "";
+      const archiveConfigured = Boolean(settings.DRIVE_ARCHIVE_WEBHOOK_URL && settings.DRIVE_ARCHIVE_SECRET);
       const pendingDocuments = studentRows
-        .filter((student) => student.pandadocDocumentId && student.contractStatus !== "signed" && student.pandadocStatus !== "document.completed")
+        .filter((student) => student.pandadocDocumentId && (
+          student.pandadocStatus !== "document.completed"
+          || (archiveConfigured && !student.signedPdfUrl.includes("drive.google.com"))
+        ))
         .slice(0, 8);
       if (apiKey && pendingDocuments.length) {
         const statuses = await Promise.allSettled(pendingDocuments.map(async (student) => ({
           student,
           status: await getPandaDocStatus(apiKey, student.pandadocDocumentId),
         })));
-        const refreshed = new Map<number, string>();
+        const refreshed = new Map<number, Record<string, string>>();
         for (const result of statuses) {
           if (result.status !== "fulfilled") continue;
           const { student, status } = result.value;
-          await savePandaDocStatus(student.id, student.pandadocDocumentId, status);
-          refreshed.set(student.id, status);
+          const values = await savePandaDocStatus(student.id, student.pandadocDocumentId, status, false, {
+            apiKey,
+            webhookUrl: settings.DRIVE_ARCHIVE_WEBHOOK_URL,
+            secret: settings.DRIVE_ARCHIVE_SECRET,
+            studentName: student.fullName,
+          });
+          refreshed.set(student.id, values);
         }
         studentRows = studentRows.map((student) => {
-          const status = refreshed.get(student.id);
-          return status ? {
+          const values = refreshed.get(student.id);
+          return values ? {
             ...student,
-            pandadocStatus: status,
-            pandadocUpdatedAt: new Date().toISOString(),
-            contractStatus: isPandaDocCompleted(status) ? "signed" : student.contractStatus,
-            signedPdfUrl: isPandaDocCompleted(status) ? pandaDocAdminUrl(student.pandadocDocumentId) : student.signedPdfUrl,
+            ...values,
           } : student;
         });
       }

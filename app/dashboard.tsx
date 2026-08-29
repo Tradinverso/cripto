@@ -38,7 +38,7 @@ type Student = {
 
 type PrivateConfig = {
   provider: { name: string };
-  drive: { root: string; pending: string; signed: string };
+  drive: { root: string; pending: string; signed: string; archiveConfigured: boolean };
   pandadoc: { configured: boolean; connected: boolean };
   payment: { usdt: { network: string; wallet: string } };
 };
@@ -427,7 +427,7 @@ export function Dashboard() {
               <button className="quick-action" type="button" onClick={() => setShowForm(true)}><span className="quick-icon">＋</span><span><strong>Registrar alumno</strong><small>Crear ficha y calendario</small></span><b>›</b></button>
               <a className="quick-action" href={privateConfig?.drive.pending || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">▤</span><span><strong>Pendientes de firma</strong><small>Abrir carpeta de Drive</small></span><b>›</b></a>
               <a className="quick-action" href={privateConfig?.drive.signed || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">↑</span><span><strong>Contratos firmados</strong><small>PDF privados en Drive</small></span><b>›</b></a>
-              <div className="drive-health"><span>✓</span><div><strong>Drive conectado</strong><small>4 carpetas preparadas</small></div></div>
+              <div className="drive-health"><span>✓</span><div><strong>{privateConfig?.drive.archiveConfigured ? "Archivado automático activo" : "Drive conectado"}</strong><small>{privateConfig?.drive.archiveConfigured ? "Los contratos firmados se guardan solos" : "Carpetas preparadas para los contratos"}</small></div></div>
               <div className={`drive-health pandadoc-health ${privateConfig?.pandadoc.connected ? "" : "offline"}`}><span>PD</span><div><strong>{privateConfig?.pandadoc.connected ? "PandaDoc conectado" : "PandaDoc sin conexión"}</strong><small>{privateConfig?.pandadoc.connected ? "Clave validada · envíos disponibles" : privateConfig?.pandadoc.configured ? "La clave está guardada, pero PandaDoc no responde" : "Falta configurar la clave"}</small></div></div>
             </aside>
           </section>
