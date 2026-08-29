@@ -45,7 +45,7 @@ export async function createPandaDocContract(student:ContractStudent,payments:Co
   const total=student.plan*student.installmentAmount;
   const paidPayments=payments.filter(payment=>payment.status==="paid");
   const unlocks:Record<number,string>={
-    1:"Pilar Trading, comunidad de Discord, software TRADINVERSO, canal de seguimiento individual, directos y operativas en directo. Onboarding inicial y entrega del cuestionario de evolución. Psicotrading y Optimización Financiera permanecen cerrados.",
+    1:"Pilar Trading, comunidad de Discord, software Tradinverso, canal de seguimiento individual, directos y operativas en directo. Onboarding inicial y entrega del cuestionario de evolución. Psicotrading y Optimización Financiera permanecen cerrados.",
     2:"Se abre Psicotrading y se mantiene todo lo anterior. Se realiza una llamada individual con David Rosell para revisar el resultado del cuestionario de evolución, orientar al alumno y definir su planificación individualizada.",
     3:"Se abre Optimización Financiera y queda confirmado el acceso completo a los tres pilares y a todos los servicios del programa.",
     4:"Se mantiene el acceso completo a los tres pilares y a todos los servicios del programa.",
@@ -86,10 +86,10 @@ export async function createPandaDocContract(student:ContractStudent,payments:Co
       body("Este plan no funciona como una suscripción mensual. Que el alumno deje de utilizar la formación, la comunidad o las sesiones no elimina el compromiso de completar las cantidades acordadas."),
       heading("Qué incluye TRADINVERSO"),
       body("La formación está dividida en tres pilares: Trading, Psicotrading y Optimización Financiera."),
-      body("Desde el primer pago, el alumno tendrá acceso al Pilar Trading, a la comunidad de Discord, al software TRADINVERSO, al canal de seguimiento individual, a los directos y a las operativas en directo. También se realizará el onboarding inicial y se entregará el cuestionario de evolución. Psicotrading y Optimización Financiera permanecerán cerrados hasta los pagos indicados."),
+      body("Desde el primer pago, el alumno tendrá acceso al Pilar Trading, a la comunidad de Discord, al software Tradinverso, al canal de seguimiento individual, a los directos y a las operativas en directo. También se realizará el onboarding inicial y se entregará el cuestionario de evolución. Psicotrading y Optimización Financiera permanecerán cerrados hasta los pagos indicados."),
       heading("Cómo se abre el acceso"),
       keyValueTable([
-        ["Después del pago 1","Se activa el Pilar Trading, la comunidad de Discord, el software TRADINVERSO, el canal de seguimiento individual, los directos y las operativas en directo. Se realiza el onboarding inicial y se entrega el cuestionario de evolución. Psicotrading y Optimización Financiera permanecen cerrados."],
+        ["Después del pago 1","Se activa el Pilar Trading, la comunidad de Discord, el software Tradinverso, el canal de seguimiento individual, los directos y las operativas en directo. Se realiza el onboarding inicial y se entrega el cuestionario de evolución. Psicotrading y Optimización Financiera permanecen cerrados."],
         ["Después del pago 2","Se abre Psicotrading y se mantiene todo lo anterior. Se realiza una llamada individual con David Rosell para revisar el resultado del cuestionario de evolución, orientar al alumno y definir su planificación individualizada."],
         ["Después del pago 3","Se abre Optimización Financiera y queda confirmado el acceso completo a los tres pilares y a todos los servicios del programa."],
         ...(student.plan===4?[["Después del pago 4","Se mantiene el acceso completo a los tres pilares y a todos los servicios del programa."] as [string,string]]:[]),
@@ -101,7 +101,7 @@ export async function createPandaDocContract(student:ContractStudent,payments:Co
       heading("Datos para el pago"),
       keyValueTable([["Moneda",student.currency],["Método / Red",student.currency==="EUR"?(student.network||"Bizum"):(student.network||"Pendiente de indicar")],["Destino del pago",paymentDestination]]),
       heading("Si un pago se retrasa"),
-      body("Cada pago debe realizarse como máximo en la fecha acordada. Si al terminar ese día no se ha recibido, TRADINVERSO pausará desde el día siguiente todo el acceso del alumno: formación, comunidad, directos, operativas, canal de seguimiento, software TRADINVERSO y cualquier otro servicio."),
+      body("Cada pago debe realizarse como máximo en la fecha acordada. Si al terminar ese día no se ha recibido, TRADINVERSO pausará desde el día siguiente todo el acceso del alumno: formación, comunidad, directos, operativas, canal de seguimiento, software Tradinverso y cualquier otro servicio."),
       body("La pausa no cancela el compromiso de pago. En cuanto TRADINVERSO reciba el pago pendiente, el acceso se reactivará."),
       heading("Confirmación del acuerdo"),
       body("Con sus firmas, TRADINVERSO y el alumno confirman que entienden el plan elegido, las fechas, el acceso progresivo y la pausa inmediata del servicio cuando exista un pago pendiente."),

@@ -3,6 +3,8 @@ import { env } from "cloudflare:workers";
 import { getDb } from "../../../db";
 import { ensureDatabase } from "../../../db/init";
 import { payments, students } from "../../../db/schema";
+import { getPandaDocStatus, isPandaDocCompleted, pandaDocAdminUrl } from "../../../lib/pandadoc";
+import { savePandaDocStatus } from "../../../lib/pandadoc-sync";
 
 type NewStudent = {
   fullName?: string;
@@ -27,9 +29,38 @@ export async function GET(request: Request) {
     const db = getDb();
     const url = new URL(request.url);
     const requestedId = Number(url.searchParams.get("id") || 0);
-    const studentRows = requestedId
+    let studentRows = requestedId
       ? await db.select().from(students).where(eq(students.id, requestedId)).limit(1)
       : await db.select().from(students).orderBy(desc(students.createdAt), desc(students.id));
+    if (url.searchParams.get("syncPandaDoc") === "1") {
+      const apiKey = (env as unknown as Record<string, string | undefined>).PANDADOC_API_KEY || "";
+      const pendingDocuments = studentRows
+        .filter((student) => student.pandadocDocumentId && student.contractStatus !== "signed" && student.pandadocStatus !== "document.completed")
+        .slice(0, 8);
+      if (apiKey && pendingDocuments.length) {
+        const statuses = await Promise.allSettled(pendingDocuments.map(async (student) => ({
+          student,
+          status: await getPandaDocStatus(apiKey, student.pandadocDocumentId),
+        })));
+        const refreshed = new Map<number, string>();
+        for (const result of statuses) {
+          if (result.status !== "fulfilled") continue;
+          const { student, status } = result.value;
+          await savePandaDocStatus(student.id, student.pandadocDocumentId, status);
+          refreshed.set(student.id, status);
+        }
+        studentRows = studentRows.map((student) => {
+          const status = refreshed.get(student.id);
+          return status ? {
+            ...student,
+            pandadocStatus: status,
+            pandadocUpdatedAt: new Date().toISOString(),
+            contractStatus: isPandaDocCompleted(status) ? "signed" : student.contractStatus,
+            signedPdfUrl: isPandaDocCompleted(status) ? pandaDocAdminUrl(student.pandadocDocumentId) : student.signedPdfUrl,
+          } : student;
+        });
+      }
+    }
     const paymentRows = await db.select().from(payments).orderBy(asc(payments.installmentNo));
     const today = new Date().toISOString().slice(0, 10);
     const result = studentRows.map((student) => {

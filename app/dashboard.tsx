@@ -112,7 +112,7 @@ export function Dashboard() {
     setError("");
     try {
       const [response, configResponse] = await Promise.all([
-        fetch("/api/students", { cache: "no-store" }),
+        fetch("/api/students?syncPandaDoc=1", { cache: "no-store" }),
         fetch("/api/config", { cache: "no-store" }),
       ]);
       const payload = await response.json() as { students?: Student[]; error?: string };
@@ -124,7 +124,10 @@ export function Dashboard() {
       setForm((current) => current.currency === "USDT" && !current.wallet
         ? { ...current, network: configPayload.payment?.usdt.network || "TRC20 (TRON)", wallet: configPayload.payment?.usdt.wallet || "" }
         : current);
-      if (selectedId) setSelected((payload.students || []).find((item) => item.id === selectedId) || null);
+      setSelected((current) => {
+        const targetId = selectedId || current?.id;
+        return targetId ? (payload.students || []).find((item) => item.id === targetId) || null : current;
+      });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo cargar la información.");
     } finally {
@@ -134,7 +137,18 @@ export function Dashboard() {
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadStudents(), 0);
-    return () => window.clearTimeout(initialLoad);
+    const automaticRefresh = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadStudents();
+    }, 60_000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void loadStudents();
+    };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearTimeout(initialLoad);
+      window.clearInterval(automaticRefresh);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [loadStudents]);
 
   const filtered = useMemo(() => students.filter((student) => {
