@@ -83,14 +83,58 @@ function pandaDocLabel(status: string) {
 }
 
 function formatCryptoTotal(totals: Record<string, number>) {
-  const parts = ["USDT", "USDC"]
-    .filter((currency) => totals[currency])
-    .map((currency) => `${totals[currency].toLocaleString("es-ES")} ${currency}`);
-  return parts.length ? parts.join(" · ") : "0";
+  const total = Object.entries(totals)
+    .filter(([currency]) => currency !== "EUR")
+    .reduce((sum, [, amount]) => sum + amount, 0);
+  return `${total.toLocaleString("es-ES")} USDT/USDC`;
 }
 
 function formatEuroTotal(totals: Record<string, number>) {
   return `${(totals.EUR || 0).toLocaleString("es-ES")} €`;
+}
+
+function monthKey(value: Date) {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function paymentMonth(value: string | null) {
+  return value ? value.slice(0, 7) : "";
+}
+
+function contractLabel(status: Student["contractStatus"]) {
+  return status === "signed" ? "Firmado" : status === "not_required" ? "No requerido" : "Pendiente";
+}
+
+function contractTone(status: Student["contractStatus"]) {
+  return status === "signed" ? "active" : status === "not_required" ? "neutral" : "warning";
+}
+
+type MonthlyFlow = {
+  key: string;
+  label: string;
+  collected: number;
+  expected: number;
+};
+
+function MonthlyBars({ rows, formatter, emptyLabel }: { rows: MonthlyFlow[]; formatter: (value: number) => string; emptyLabel: string }) {
+  const maximum = Math.max(1, ...rows.flatMap((row) => [row.collected, row.expected]));
+  return (
+    <div className="monthly-chart" role="img" aria-label="Comparativa mensual de importes cobrados y previstos">
+      <div className="chart-legend"><span><i className="collected" />Cobrado</span><span><i className="expected" />Previsto</span></div>
+      <div className="chart-columns">
+        {rows.map((row) => (
+          <div className="chart-month" key={row.key}>
+            <div className="chart-bars">
+              <span className="chart-bar collected" style={{ height: `${Math.max(row.collected ? 8 : 0, (row.collected / maximum) * 100)}%` }} title={`Cobrado: ${formatter(row.collected)}`}><b>{row.collected ? formatter(row.collected) : ""}</b></span>
+              <span className="chart-bar expected" style={{ height: `${Math.max(row.expected ? 8 : 0, (row.expected / maximum) * 100)}%` }} title={`Previsto: ${formatter(row.expected)}`}><b>{row.expected ? formatter(row.expected) : ""}</b></span>
+            </div>
+            <strong>{row.label}</strong>
+          </div>
+        ))}
+      </div>
+      {!rows.some((row) => row.collected || row.expected) && <p className="chart-empty">{emptyLabel}</p>}
+    </div>
+  );
 }
 
 export function Dashboard() {
@@ -177,6 +221,53 @@ export function Dashboard() {
       pendingContracts: students.filter((student) => student.contractStatus === "pending").length,
     };
   }, [students]);
+
+  const monthlyFinance = useMemo(() => {
+    const today = new Date();
+    const rows = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(today.getFullYear(), today.getMonth() - 2 + index, 1);
+      return {
+        key: monthKey(date),
+        label: new Intl.DateTimeFormat("es-ES", { month: "short" }).format(date).replace(".", ""),
+        euroCollected: 0,
+        euroExpected: 0,
+        cryptoCollected: 0,
+        cryptoExpected: 0,
+      };
+    });
+    const byMonth = new Map(rows.map((row) => [row.key, row]));
+    students.flatMap((student) => student.payments).forEach((payment) => {
+      const isPaid = payment.status === "paid";
+      const key = paymentMonth(isPaid ? (payment.paidAt || payment.dueDate) : payment.dueDate);
+      const row = byMonth.get(key);
+      if (!row) return;
+      const isEuro = payment.currency === "EUR";
+      if (isEuro && isPaid) row.euroCollected += payment.amount;
+      if (isEuro && !isPaid) row.euroExpected += payment.amount;
+      if (!isEuro && isPaid) row.cryptoCollected += payment.amount;
+      if (!isEuro && !isPaid) row.cryptoExpected += payment.amount;
+    });
+    const currentKey = monthKey(today);
+    const nextKey = monthKey(new Date(today.getFullYear(), today.getMonth() + 1, 1));
+    const current = byMonth.get(currentKey);
+    const next = byMonth.get(nextKey);
+    return {
+      euro: rows.map((row) => ({ key: row.key, label: row.label, collected: row.euroCollected, expected: row.euroExpected })),
+      crypto: rows.map((row) => ({ key: row.key, label: row.label, collected: row.cryptoCollected, expected: row.cryptoExpected })),
+      current,
+      next,
+    };
+  }, [students]);
+
+  const priorityStudents = useMemo(() => [...students].sort((left, right) => {
+    const leftOverdue = left.payments.some((payment) => payment.status === "overdue") ? 0 : 1;
+    const rightOverdue = right.payments.some((payment) => payment.status === "overdue") ? 0 : 1;
+    if (leftOverdue !== rightOverdue) return leftOverdue - rightOverdue;
+    if (left.contractStatus !== right.contractStatus) return left.contractStatus === "pending" ? -1 : 1;
+    const leftDate = left.payments.find((payment) => payment.status !== "paid")?.dueDate || "9999-12-31";
+    const rightDate = right.payments.find((payment) => payment.status !== "paid")?.dueDate || "9999-12-31";
+    return leftDate.localeCompare(rightDate);
+  }).slice(0, 5), [students]);
 
   async function createStudent(event: FormEvent) {
     event.preventDefault();
@@ -293,17 +384,56 @@ export function Dashboard() {
 
         {error && <div className="alert" role="alert">{error}<button type="button" onClick={() => setError("")}>×</button></div>}
 
-        <section className="stats" aria-label="Resumen">
+        {activeView === "panel" && <section className="stats" aria-label="Resumen">
           <article className="stat-card"><span className="stat-icon blue">◎</span><div><p>Alumnos activos</p><strong>{stats.active}</strong><small>{students.length} registrados</small></div></article>
           <article className="stat-card"><span className="stat-icon gold">€</span><div><p>Por cobrar · Euros</p><strong>{formatEuroTotal(stats.receivable)}</strong><small>Pagos en Bizum pendientes</small></div></article>
-          <article className="stat-card"><span className="stat-icon crypto">₮</span><div><p>Por cobrar · Cripto</p><strong>{formatCryptoTotal(stats.receivable)}</strong><small>USDT y USDC pendientes</small></div></article>
+          <article className="stat-card"><span className="stat-icon crypto">₮</span><div><p>Por cobrar · Cripto</p><strong>{formatCryptoTotal(stats.receivable)}</strong><small>Cobros cripto pendientes</small></div></article>
           <article className="stat-card"><span className="stat-icon green">€</span><div><p>Cobrado · Euros</p><strong>{formatEuroTotal(stats.collected)}</strong><small>Ingresos recibidos por Bizum</small></div></article>
-          <article className="stat-card"><span className="stat-icon teal">✓</span><div><p>Cobrado · Cripto</p><strong>{formatCryptoTotal(stats.collected)}</strong><small>USDT y USDC recibidos</small></div></article>
+          <article className="stat-card"><span className="stat-icon teal">✓</span><div><p>Cobrado · Cripto</p><strong>{formatCryptoTotal(stats.collected)}</strong><small>Ingresos cripto recibidos</small></div></article>
           <article className="stat-card"><span className="stat-icon red">!</span><div><p>Pagos vencidos</p><strong>{stats.overdue}</strong><small>{stats.overdue ? "Requieren seguimiento" : "Todo al día"}</small></div></article>
           <article className="stat-card"><span className="stat-icon violet">▤</span><div><p>Contratos firmados</p><strong>{stats.signed}</strong><small>{stats.pendingContracts} pendientes</small></div></article>
-        </section>
+        </section>}
 
-        {(activeView === "panel" || activeView === "students") && <section className={`content-grid ${activeView === "students" ? "single" : ""}`}>
+        {activeView === "panel" && <>
+          <section className="finance-grid" aria-label="Resumen financiero mensual">
+            <article className="panel finance-panel euro-panel">
+              <div className="panel-heading finance-heading"><div><p className="finance-kicker">EUROS · BIZUM</p><h2>Entradas y previsión</h2><p>Histórico reciente y cobros programados</p></div><div className="month-summary"><span><small>Este mes</small><strong>{(monthlyFinance.current?.euroCollected || 0).toLocaleString("es-ES")} €</strong></span><span><small>Próximo mes</small><strong>{(monthlyFinance.next?.euroExpected || 0).toLocaleString("es-ES")} €</strong></span></div></div>
+              <MonthlyBars rows={monthlyFinance.euro} formatter={(value) => `${value.toLocaleString("es-ES")} €`} emptyLabel="Todavía no hay movimientos en euros para este periodo." />
+            </article>
+            <article className="panel finance-panel crypto-panel">
+              <div className="panel-heading finance-heading"><div><p className="finance-kicker">CRIPTO · TOTAL UNIFICADO</p><h2>Entradas y previsión</h2><p>USDT y USDC agrupados en un único saldo</p></div><div className="month-summary"><span><small>Este mes</small><strong>{(monthlyFinance.current?.cryptoCollected || 0).toLocaleString("es-ES")}</strong></span><span><small>Próximo mes</small><strong>{(monthlyFinance.next?.cryptoExpected || 0).toLocaleString("es-ES")}</strong></span></div></div>
+              <MonthlyBars rows={monthlyFinance.crypto} formatter={(value) => value.toLocaleString("es-ES")} emptyLabel="Todavía no hay movimientos en cripto para este periodo." />
+            </article>
+          </section>
+
+          <section className="content-grid dashboard-lower">
+            <article className="panel priority-panel">
+              <div className="panel-heading"><div><h2>Seguimiento prioritario</h2><p>Próximos cobros, contratos y accesos</p></div><button className="text-button" type="button" onClick={() => setActiveView("students")}>Ver todos →</button></div>
+              <div className="priority-list">
+                {priorityStudents.map((student) => {
+                  const next = student.payments.find((payment) => payment.status !== "paid");
+                  return <button className="priority-row" type="button" key={student.id} onClick={() => openStudent(student)}>
+                    <span className="student-name"><b>{initials(student.fullName)}</b><span><strong>{student.fullName}</strong><small>{next ? `${next.amount} ${next.currency} · ${formatDate(next.dueDate)}` : "Plan completado"}</small></span></span>
+                    <mark className={`status ${contractTone(student.contractStatus)}`}>{contractLabel(student.contractStatus)}</mark>
+                    <mark className={`status ${student.accessStatus === "active" ? "active" : "paused"}`}>{student.accessStatus === "active" ? "Activo" : "Pausado"}</mark>
+                  </button>;
+                })}
+                {!loading && priorityStudents.length === 0 && <div className="compact-empty">No hay alumnos registrados.</div>}
+              </div>
+            </article>
+
+            <aside className="panel quick-panel" id="contratos">
+              <div className="panel-heading"><div><h2>Acciones rápidas</h2><p>Tu operativa diaria</p></div></div>
+              <button className="quick-action" type="button" onClick={() => setShowForm(true)}><span className="quick-icon">＋</span><span><strong>Registrar alumno</strong><small>Crear ficha y calendario</small></span><b>›</b></button>
+              <a className="quick-action" href={privateConfig?.drive.pending || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">▤</span><span><strong>Pendientes de firma</strong><small>Abrir carpeta de Drive</small></span><b>›</b></a>
+              <a className="quick-action" href={privateConfig?.drive.signed || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">↑</span><span><strong>Contratos firmados</strong><small>PDF privados en Drive</small></span><b>›</b></a>
+              <div className="drive-health"><span>✓</span><div><strong>Drive conectado</strong><small>4 carpetas preparadas</small></div></div>
+              <div className={`drive-health pandadoc-health ${privateConfig?.pandadoc.connected ? "" : "offline"}`}><span>PD</span><div><strong>{privateConfig?.pandadoc.connected ? "PandaDoc conectado" : "PandaDoc sin conexión"}</strong><small>{privateConfig?.pandadoc.connected ? "Clave validada · envíos disponibles" : privateConfig?.pandadoc.configured ? "La clave está guardada, pero PandaDoc no responde" : "Falta configurar la clave"}</small></div></div>
+            </aside>
+          </section>
+        </>}
+
+        {activeView === "students" && <section className="content-grid single">
           <article className="panel students-panel" id="alumnos">
             <div className="panel-heading panel-heading-stack">
               <div><h2>Seguimiento de alumnos</h2><p>Próximos pagos y estado de acceso</p></div>
@@ -315,7 +445,7 @@ export function Dashboard() {
               </div>
             </div>
             <div className="student-table" role="table" aria-label="Alumnos">
-              <div className="table-row table-head" role="row"><span>ALUMNO</span><span>PLAN</span><span>PROGRESO</span><span>PRÓXIMO PAGO</span><span>ACCESO</span></div>
+              <div className="table-row table-head" role="row"><span>ALUMNO</span><span>PLAN</span><span>PROGRESO</span><span>PRÓXIMO PAGO</span><span>CONTRATO</span><span>ACCESO</span></div>
               {loading && <div className="empty-state"><strong>Cargando alumnos…</strong></div>}
               {!loading && filtered.length === 0 && <div className="empty-state"><span>◎</span><strong>Aún no hay alumnos</strong><p>Crea el primero para generar su calendario y contrato.</p><button type="button" onClick={() => setShowForm(true)}>Registrar alumno</button></div>}
               {filtered.map((student) => {
@@ -327,6 +457,7 @@ export function Dashboard() {
                     <span>{student.plan} pagos · {student.installmentAmount} {student.currency}</span>
                     <span><strong>{paid} de {student.plan}</strong><i><em style={{ width: `${(paid / student.plan) * 100}%` }} /></i></span>
                     <span>{next ? formatDate(next.dueDate) : "Completado"}</span>
+                    <span><mark className={`status ${contractTone(student.contractStatus)}`}>{contractLabel(student.contractStatus)}</mark></span>
                     <span><mark className={`status ${student.accessStatus === "active" ? "active" : "paused"}`}>{student.accessStatus === "active" ? "Activo" : "Pausado"}</mark></span>
                   </button>
                 );
@@ -334,14 +465,6 @@ export function Dashboard() {
             </div>
           </article>
 
-          {activeView === "panel" && <aside className="panel quick-panel" id="contratos">
-            <div className="panel-heading"><div><h2>Acciones rápidas</h2><p>Tu operativa diaria</p></div></div>
-            <button className="quick-action" type="button" onClick={() => setShowForm(true)}><span className="quick-icon">＋</span><span><strong>Registrar alumno</strong><small>Crear ficha y calendario</small></span><b>›</b></button>
-            <a className="quick-action" href={privateConfig?.drive.pending || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">▤</span><span><strong>Pendientes de firma</strong><small>Abrir carpeta de Drive</small></span><b>›</b></a>
-            <a className="quick-action" href={privateConfig?.drive.signed || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">↑</span><span><strong>Contratos firmados</strong><small>PDF privados en Drive</small></span><b>›</b></a>
-            <div className="drive-health"><span>✓</span><div><strong>Drive conectado</strong><small>4 carpetas preparadas</small></div></div>
-            <div className={`drive-health pandadoc-health ${privateConfig?.pandadoc.connected ? "" : "offline"}`}><span>PD</span><div><strong>{privateConfig?.pandadoc.connected ? "PandaDoc conectado" : "PandaDoc sin conexión"}</strong><small>{privateConfig?.pandadoc.connected ? "Clave validada · envíos disponibles" : privateConfig?.pandadoc.configured ? "La clave está guardada, pero PandaDoc no responde" : "Falta configurar la clave"}</small></div></div>
-          </aside>}
         </section>}
 
         {activeView === "payments" && <article className="panel view-panel">
