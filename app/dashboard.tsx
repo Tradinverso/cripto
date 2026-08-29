@@ -86,7 +86,7 @@ function formatCryptoTotal(totals: Record<string, number>) {
   const total = Object.entries(totals)
     .filter(([currency]) => currency !== "EUR")
     .reduce((sum, [, amount]) => sum + amount, 0);
-  return `${total.toLocaleString("es-ES")} USDT/USDC`;
+  return `${total.toLocaleString("es-ES")} USD`;
 }
 
 function formatEuroTotal(totals: Record<string, number>) {
@@ -387,9 +387,9 @@ export function Dashboard() {
         {activeView === "panel" && <section className="stats" aria-label="Resumen">
           <article className="stat-card"><span className="stat-icon blue">◎</span><div><p>Alumnos activos</p><strong>{stats.active}</strong><small>{students.length} registrados</small></div></article>
           <article className="stat-card"><span className="stat-icon gold">€</span><div><p>Por cobrar · Euros</p><strong>{formatEuroTotal(stats.receivable)}</strong><small>Pagos en Bizum pendientes</small></div></article>
-          <article className="stat-card"><span className="stat-icon crypto">₮</span><div><p>Por cobrar · Cripto</p><strong>{formatCryptoTotal(stats.receivable)}</strong><small>Cobros cripto pendientes</small></div></article>
+          <article className="stat-card"><span className="stat-icon crypto">$</span><div><p>Por cobrar · Cripto</p><strong>{formatCryptoTotal(stats.receivable)}</strong><small>Cobros cripto pendientes</small></div></article>
           <article className="stat-card"><span className="stat-icon green">€</span><div><p>Cobrado · Euros</p><strong>{formatEuroTotal(stats.collected)}</strong><small>Ingresos recibidos por Bizum</small></div></article>
-          <article className="stat-card"><span className="stat-icon teal">✓</span><div><p>Cobrado · Cripto</p><strong>{formatCryptoTotal(stats.collected)}</strong><small>Ingresos cripto recibidos</small></div></article>
+          <article className="stat-card"><span className="stat-icon teal">$</span><div><p>Cobrado · Cripto</p><strong>{formatCryptoTotal(stats.collected)}</strong><small>Ingresos cripto recibidos</small></div></article>
           <article className="stat-card"><span className="stat-icon red">!</span><div><p>Pagos vencidos</p><strong>{stats.overdue}</strong><small>{stats.overdue ? "Requieren seguimiento" : "Todo al día"}</small></div></article>
           <article className="stat-card"><span className="stat-icon violet">▤</span><div><p>Contratos firmados</p><strong>{stats.signed}</strong><small>{stats.pendingContracts} pendientes</small></div></article>
         </section>}
