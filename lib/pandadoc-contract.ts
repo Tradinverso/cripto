@@ -4,7 +4,7 @@ import {
 } from "docx";
 
 type ContractStudent = { fullName:string; documentId:string; address:string; country:string; email:string; phone:string; plan:number; installmentAmount:number; currency:string; network:string; wallet:string };
-type ContractPayment = { installmentNo:number; amount:number; currency:string; dueDate:string };
+type ContractPayment = { installmentNo:number; amount:number; currency:string; dueDate:string; paidAt:string|null; status:string };
 type Provider = { name:string; documentId:string; address:string; email:string; phone:string };
 
 const NAVY="17243C", BLUE="2E6694", GOLD="A47825", MUTED="6D788A", LINE="DCE2E9", LIGHT="F4F6F9";
@@ -31,6 +31,11 @@ function keyValueTable(rows:Array<[string,string]>) { return new Table({width:{s
   cell([new Paragraph({children:[run(value,{size:17})]})],7140),
 ]}))}); }
 function prettyDate(value:string) { return value?new Intl.DateTimeFormat("es-ES",{day:"2-digit",month:"2-digit",year:"numeric",timeZone:"UTC"}).format(new Date(`${value}T12:00:00Z`)):"Sin fecha"; }
+function paymentStatus(payment:ContractPayment) {
+  if (payment.status !== "paid") return "Pendiente";
+  const paidDate=payment.paidAt?.slice(0,10);
+  return paidDate?`Pagado el ${prettyDate(paidDate)}`:"Pagado";
+}
 function personCell(title:string,rows:Array<[string,string]>) { return cell([
   new Paragraph({children:[run(title,{bold:true,color:BLUE,size:17})],spacing:{after:90}}),
   ...rows.map(([label,value])=>new Paragraph({children:[run(`${label}: `,{bold:true,color:MUTED,size:16}),run(value,{size:17})],spacing:{after:55}})),
@@ -38,19 +43,22 @@ function personCell(title:string,rows:Array<[string,string]>) { return cell([
 
 export async function createPandaDocContract(student:ContractStudent,payments:ContractPayment[],provider:Provider) {
   const total=student.plan*student.installmentAmount;
-  const unlocks:Record<number,string>={1:"Pilar Trading + comunidad + llamadas + clases + operativas + software TRADINVERSO",2:"Se añade Psicotrading y se mantienen todos los servicios",3:"Se añade Optimización Financiera y queda confirmado el acceso completo",4:"Se mantiene el acceso completo a todo el programa"};
+  const paidPayments=payments.filter(payment=>payment.status==="paid");
+  const unlocks:Record<number,string>={1:"Pilar Trading + software + comunidad + directos + operativas + canal de seguimiento + evaluación inicial + sesión de onboarding",2:"Se añade Psicotrading y continúa el seguimiento",3:"Se añade Optimización Financiera y queda confirmado el acceso completo",4:"Se mantiene el acceso completo a todo el programa"};
   const paymentRows=[
     new TableRow({tableHeader:true,children:[
       cell([new Paragraph({children:[run("Pago",{bold:true,color:"FFFFFF",size:16})]})],700,NAVY),
       cell([new Paragraph({children:[run("Importe",{bold:true,color:"FFFFFF",size:16})]})],1800,NAVY),
-      cell([new Paragraph({children:[run("Fecha acordada",{bold:true,color:"FFFFFF",size:16})]})],1900,NAVY),
-      cell([new Paragraph({children:[run("Qué se desbloquea",{bold:true,color:"FFFFFF",size:16})]})],5040,NAVY),
+      cell([new Paragraph({children:[run("Fecha acordada",{bold:true,color:"FFFFFF",size:16})]})],1700,NAVY),
+      cell([new Paragraph({children:[run("Estado",{bold:true,color:"FFFFFF",size:16})]})],1600,NAVY),
+      cell([new Paragraph({children:[run("Qué se desbloquea",{bold:true,color:"FFFFFF",size:16})]})],3640,NAVY),
     ]}),
     ...payments.map(payment=>new TableRow({children:[
       cell([new Paragraph({children:[run(String(payment.installmentNo),{size:16})]})],700),
       cell([new Paragraph({children:[run(`${payment.amount} ${payment.currency}`,{size:16})]})],1800),
-      cell([new Paragraph({children:[run(prettyDate(payment.dueDate),{size:16})]})],1900),
-      cell([new Paragraph({children:[run(unlocks[payment.installmentNo]||"Se mantiene el acceso completo",{size:16})]})],5040),
+      cell([new Paragraph({children:[run(prettyDate(payment.dueDate),{size:16})]})],1700),
+      cell([new Paragraph({children:[run(paymentStatus(payment),{bold:true,color:payment.status==="paid"?"238557":GOLD,size:15})]})],1600,payment.status==="paid"?"EAF8F0":"FBF4E4"),
+      cell([new Paragraph({children:[run(unlocks[payment.installmentNo]||"Se mantiene el acceso completo",{size:16})]})],3640),
     ]})),
   ];
   const paymentDestination=student.currency==="EUR"?provider.phone:(student.wallet||"Pendiente de indicar");
@@ -73,16 +81,17 @@ export async function createPandaDocContract(student:ContractStudent,payments:Co
       body("Este plan no funciona como una suscripción mensual. Que el alumno deje de utilizar la formación, la comunidad o las sesiones no elimina el compromiso de completar las cantidades acordadas."),
       heading("Qué incluye TRADINVERSO"),
       body("La formación está dividida en tres pilares: Trading, Psicotrading y Optimización Financiera."),
-      body("Desde el primer pago, el alumno tendrá acceso a la comunidad, llamadas, clases, operativas en directo, demás sesiones organizadas por TRADINVERSO y acceso al software TRADINVERSO. Los pilares formativos se abrirán progresivamente con cada pago."),
+      body("Desde el primer pago, el alumno tendrá acceso al Pilar Trading, al software TRADINVERSO, a la comunidad, a los directos, a las operativas, al canal de seguimiento, a una evaluación inicial y a una sesión inicial de onboarding. Los demás pilares formativos se abrirán progresivamente con cada pago."),
       heading("Cómo se abre el acceso"),
-      keyValueTable([["Después del pago 1","Pilar Trading. Comunidad, llamadas, clases, operativas y software TRADINVERSO."],["Después del pago 2","Se añade Psicotrading. Se mantiene el acceso a todos los servicios."],["Después del pago 3","Se añade Optimización Financiera. Acceso completo a todo el programa confirmado."],...(student.plan===4?[["Después del pago 4","Los tres pilares permanecen disponibles y se mantiene el acceso completo."] as [string,string]]:[])]),
+      keyValueTable([["Después del pago 1","Pilar Trading, software TRADINVERSO, comunidad, directos, operativas, canal de seguimiento, evaluación inicial y una sesión de onboarding."],["Después del pago 2","Se añade Psicotrading. Continúan la comunidad, los directos, las operativas y el canal de seguimiento."],["Después del pago 3","Se añade Optimización Financiera. Acceso completo a todo el programa confirmado."],...(student.plan===4?[["Después del pago 4","Los tres pilares permanecen disponibles y se mantiene el acceso completo."] as [string,string]]:[])]),
       heading("Calendario de pagos"),
       body(`El precio total acordado es de ${total} ${student.currency}, dividido en ${student.plan} pagos de ${student.installmentAmount} ${student.currency}.`),
-      new Table({width:{size:9440,type:WidthType.DXA},columnWidths:[700,1800,1900,5040],borders,rows:paymentRows}),
+      ...(paidPayments.length?[body(`A la fecha de emisión de este acuerdo, ${paidPayments.length===1?"el primer pago figura":"los pagos indicados figuran"} como recibido${paidPayments.length===1?"":"s"} en el calendario.`)]:[]),
+      new Table({width:{size:9440,type:WidthType.DXA},columnWidths:[700,1800,1700,1600,3640],borders,rows:paymentRows}),
       heading("Datos para el pago"),
       keyValueTable([["Moneda",student.currency],["Método / Red",student.currency==="EUR"?(student.network||"Bizum"):(student.network||"Pendiente de indicar")],["Destino del pago",paymentDestination]]),
       heading("Si un pago se retrasa"),
-      body("Cada pago debe realizarse como máximo en la fecha acordada. Si al terminar ese día no se ha recibido, TRADINVERSO pausará desde el día siguiente todo el acceso del alumno: formación, comunidad, llamadas, clases, operativas en directo, software TRADINVERSO y cualquier otro servicio."),
+      body("Cada pago debe realizarse como máximo en la fecha acordada. Si al terminar ese día no se ha recibido, TRADINVERSO pausará desde el día siguiente todo el acceso del alumno: formación, comunidad, directos, operativas, canal de seguimiento, software TRADINVERSO y cualquier otro servicio."),
       body("La pausa no cancela el compromiso de pago. En cuanto TRADINVERSO reciba el pago pendiente, el acceso se reactivará."),
       heading("Confirmación del acuerdo"),
       body("Con su firma, el alumno confirma que entiende el plan elegido, las fechas, el acceso progresivo y la pausa inmediata del servicio cuando exista un pago pendiente."),
