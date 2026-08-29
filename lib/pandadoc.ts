@@ -34,20 +34,29 @@ export async function uploadPandaDoc(
   apiKey: string,
   file: Uint8Array,
   student: { id: number; fullName: string; email: string },
+  provider: { fullName: string; email: string },
 ) {
   const names = student.fullName.trim().split(/\s+/);
   const firstName = names.shift() || student.fullName;
   const lastName = names.join(" ") || "Alumno";
+  const providerNames = provider.fullName.trim().split(/\s+/);
+  const providerFirstName = providerNames.shift() || provider.fullName;
+  const providerLastName = providerNames.join(" ") || "TRADINVERSO";
   const binary = new Uint8Array(file.byteLength);
   binary.set(file);
   const form = new FormData();
   form.append("file", new Blob([binary.buffer], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }), `Acuerdo TRADINVERSO - ${student.fullName}.docx`);
   form.append("data", JSON.stringify({
     name: `Acuerdo TRADINVERSO - ${student.fullName}`,
-    recipients: [{ email: student.email, first_name: firstName, last_name: lastName, role: "Alumno" }],
+    recipients: [
+      { email: student.email, first_name: firstName, last_name: lastName, role: "Alumno", signing_order: 1 },
+      { email: provider.email, first_name: providerFirstName, last_name: providerLastName, role: "Tradinverso", signing_order: 2 },
+    ],
     fields: {
-      student_signature: { value: "", role: "Alumno" },
-      student_signing_date: { value: "", role: "Alumno" },
+      s_sig: { value: "", role: "Alumno" },
+      s_date: { value: "", role: "Alumno" },
+      p_sig: { value: "", role: "Tradinverso" },
+      p_date: { value: "", role: "Tradinverso" },
     },
     parse_form_fields: false,
     tags: ["TRADINVERSO", "Contrato alumnos"],

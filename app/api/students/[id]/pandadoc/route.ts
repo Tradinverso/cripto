@@ -92,7 +92,10 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
         email: settings.PROVIDER_EMAIL || "hola@tradinverso.com",
         phone: settings.PROVIDER_PHONE || "+34 614 33 76 15",
       });
-      const uploaded = await uploadPandaDoc(apiKey, new Uint8Array(file), student);
+      const uploaded = await uploadPandaDoc(apiKey, new Uint8Array(file), student, {
+        fullName: settings.PROVIDER_NAME || "David Rosell",
+        email: settings.PANDADOC_SIGNER_EMAIL || "tradinverso@gmail.com",
+      });
       documentId = uploaded.id;
       status = uploaded.status;
       await saveStatus(studentId, documentId, status);
