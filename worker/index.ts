@@ -8,6 +8,8 @@ interface Env {
   APP_PASSWORD?: string;
   SESSION_SECRET?: string;
   PANDADOC_API_KEY?: string;
+  USDT_NETWORK?: string;
+  USDT_WALLET?: string;
   IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {

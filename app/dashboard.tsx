@@ -40,6 +40,7 @@ type PrivateConfig = {
   provider: { name: string };
   drive: { root: string; pending: string; signed: string };
   pandadoc: { configured: boolean; connected: boolean };
+  payment: { usdt: { network: string; wallet: string } };
 };
 
 const emptyForm = {
@@ -52,7 +53,7 @@ const emptyForm = {
   plan: 3,
   installmentAmount: 510,
   currency: "USDT",
-  network: "",
+  network: "TRC20 (TRON)",
   wallet: "",
   contractRequired: true,
   notes: "",
@@ -109,6 +110,9 @@ export function Dashboard() {
       if (!configResponse.ok) throw new Error(configPayload.error || "No se pudo cargar la configuración privada.");
       setStudents(payload.students || []);
       setPrivateConfig(configPayload);
+      setForm((current) => current.currency === "USDT" && !current.wallet
+        ? { ...current, network: configPayload.payment?.usdt.network || "TRC20 (TRON)", wallet: configPayload.payment?.usdt.wallet || "" }
+        : current);
       if (selectedId) setSelected((payload.students || []).find((item) => item.id === selectedId) || null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo cargar la información.");
@@ -356,7 +360,7 @@ export function Dashboard() {
               <div className="form-section"><h3>Plan y forma de pago</h3><div className="form-grid">
                 <label>Plan<select value={form.plan} onChange={(e) => { const plan = Number(e.target.value); setForm({ ...form, plan, installmentAmount: form.currency === "EUR" ? (plan === 4 ? 375 : 500) : (plan === 4 ? 385 : 510) }); }}><option value={3}>3 pagos</option><option value={4}>4 pagos</option></select></label>
                 <label>Importe de cada pago<input required min="1" step="1" type="number" value={form.installmentAmount} onChange={(e) => setForm({ ...form, installmentAmount: Number(e.target.value) })} /></label>
-                <label>Moneda<select value={form.currency} onChange={(e) => { const currency = e.target.value; setForm({ ...form, currency, installmentAmount: currency === "EUR" ? (form.plan === 4 ? 375 : 500) : (form.plan === 4 ? 385 : 510), network: currency === "EUR" ? "Bizum" : "", wallet: currency === "EUR" ? "" : form.wallet }); }}><option>USDT</option><option>USDC</option><option>EUR</option></select></label>
+                <label>Moneda<select value={form.currency} onChange={(e) => { const currency = e.target.value; setForm({ ...form, currency, installmentAmount: currency === "EUR" ? (form.plan === 4 ? 375 : 500) : (form.plan === 4 ? 385 : 510), network: currency === "EUR" ? "Bizum" : currency === "USDT" ? privateConfig?.payment.usdt.network || "TRC20 (TRON)" : "", wallet: currency === "USDT" ? privateConfig?.payment.usdt.wallet || "" : "" }); }}><option>USDT</option><option>USDC</option><option>EUR</option></select></label>
                 {form.currency === "EUR" ? <label>Método de pago<select value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })}><option>Bizum</option></select></label> : <label>Red<input placeholder="Ej. TRC20, ERC20…" value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })} /></label>}
                 {form.currency !== "EUR" && <label className="wide">Wallet<input value={form.wallet} onChange={(e) => setForm({ ...form, wallet: e.target.value })} /></label>}
                 <label className="wide">Contrato<select value={form.contractRequired ? "required" : "not_required"} onChange={(e) => setForm({ ...form, contractRequired: e.target.value === "required" })}><option value="required">Requiere contrato</option><option value="not_required">Sin contrato</option></select></label>

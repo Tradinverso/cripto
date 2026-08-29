@@ -1,4 +1,5 @@
 import { asc, desc, eq } from "drizzle-orm";
+import { env } from "cloudflare:workers";
 import { getDb } from "../../../db";
 import { ensureDatabase } from "../../../db/init";
 import { payments, students } from "../../../db/schema";
@@ -58,6 +59,9 @@ export async function POST(request: Request) {
     const plan = body.plan === 4 ? 4 : 3;
     const installmentAmount = Number(body.installmentAmount);
     const currency = body.currency === "EUR" ? "EUR" : body.currency === "USDC" ? "USDC" : "USDT";
+    const privateEnv = env as unknown as Record<string, string | undefined>;
+    const network = body.network?.trim() || (currency === "USDT" ? privateEnv.USDT_NETWORK || "TRC20 (TRON)" : "");
+    const wallet = body.wallet?.trim() || (currency === "USDT" ? privateEnv.USDT_WALLET || "" : "");
     const dueDates = (body.dueDates || []).slice(0, plan);
     if (!fullName || !documentId || !phone || !Number.isInteger(installmentAmount) || installmentAmount <= 0 || dueDates.length !== plan || dueDates.some((date) => !date)) {
       return Response.json({ error: "Completa los datos obligatorios y todas las fechas de pago." }, { status: 400 });
@@ -74,8 +78,8 @@ export async function POST(request: Request) {
       plan,
       installmentAmount,
       currency,
-      network: body.network?.trim() || "",
-      wallet: body.wallet?.trim() || "",
+      network,
+      wallet,
       contractStatus: body.contractRequired === false ? "not_required" : "pending",
       notes: body.notes?.trim() || "",
     }).returning();

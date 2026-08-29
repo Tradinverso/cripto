@@ -29,5 +29,11 @@ export async function GET() {
       configured: Boolean(pandaDocKey),
       connected: pandaDocConnected,
     },
+    payment: {
+      usdt: {
+        network: privateEnv.USDT_NETWORK || "TRC20 (TRON)",
+        wallet: privateEnv.USDT_WALLET || "",
+      },
+    },
   });
 }

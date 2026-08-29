@@ -17,6 +17,8 @@ export default defineConfig(async ({ mode }) => {
     DRIVE_ROOT_URL: localEnv.DRIVE_ROOT_URL || "",
     DRIVE_PENDING_URL: localEnv.DRIVE_PENDING_URL || "",
     DRIVE_SIGNED_URL: localEnv.DRIVE_SIGNED_URL || "",
+    USDT_NETWORK: localEnv.USDT_NETWORK || "TRC20 (TRON)",
+    USDT_WALLET: localEnv.USDT_WALLET || "",
   } : {};
   // Keep Wrangler and Miniflare state project-local. These are non-secret tool
   // settings; application environment belongs in ignored `.env*` files.
