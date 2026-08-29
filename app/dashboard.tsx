@@ -82,6 +82,17 @@ function pandaDocLabel(status: string) {
   } as Record<string, string>)[status] || (status ? status.replace("document.", "") : "No enviado");
 }
 
+function formatCryptoTotal(totals: Record<string, number>) {
+  const parts = ["USDT", "USDC"]
+    .filter((currency) => totals[currency])
+    .map((currency) => `${totals[currency].toLocaleString("es-ES")} ${currency}`);
+  return parts.length ? parts.join(" · ") : "0";
+}
+
+function formatEuroTotal(totals: Record<string, number>) {
+  return `${(totals.EUR || 0).toLocaleString("es-ES")} €`;
+}
+
 export function Dashboard() {
   const [students, setStudents] = useState<Student[]>([]);
   const [privateConfig, setPrivateConfig] = useState<PrivateConfig | null>(null);
@@ -270,8 +281,10 @@ export function Dashboard() {
 
         <section className="stats" aria-label="Resumen">
           <article className="stat-card"><span className="stat-icon blue">◎</span><div><p>Alumnos activos</p><strong>{stats.active}</strong><small>{students.length} registrados</small></div></article>
-          <article className="stat-card"><span className="stat-icon gold">◇</span><div><p>Por cobrar</p><strong>{Object.keys(stats.receivable).length ? Object.entries(stats.receivable).map(([currency, amount]) => `${amount.toLocaleString("es-ES")} ${currency}`).join(" · ") : "0"}</strong><small>Importes pendientes</small></div></article>
-          <article className="stat-card"><span className="stat-icon green">✓</span><div><p>Cobrado</p><strong>{Object.keys(stats.collected).length ? Object.entries(stats.collected).map(([currency, amount]) => `${amount.toLocaleString("es-ES")} ${currency}`).join(" · ") : "0"}</strong><small>Pagos recibidos</small></div></article>
+          <article className="stat-card"><span className="stat-icon gold">€</span><div><p>Por cobrar · Euros</p><strong>{formatEuroTotal(stats.receivable)}</strong><small>Pagos en Bizum pendientes</small></div></article>
+          <article className="stat-card"><span className="stat-icon crypto">₮</span><div><p>Por cobrar · Cripto</p><strong>{formatCryptoTotal(stats.receivable)}</strong><small>USDT y USDC pendientes</small></div></article>
+          <article className="stat-card"><span className="stat-icon green">€</span><div><p>Cobrado · Euros</p><strong>{formatEuroTotal(stats.collected)}</strong><small>Ingresos recibidos por Bizum</small></div></article>
+          <article className="stat-card"><span className="stat-icon teal">✓</span><div><p>Cobrado · Cripto</p><strong>{formatCryptoTotal(stats.collected)}</strong><small>USDT y USDC recibidos</small></div></article>
           <article className="stat-card"><span className="stat-icon red">!</span><div><p>Pagos vencidos</p><strong>{stats.overdue}</strong><small>{stats.overdue ? "Requieren seguimiento" : "Todo al día"}</small></div></article>
           <article className="stat-card"><span className="stat-icon violet">▤</span><div><p>Contratos firmados</p><strong>{stats.signed}</strong><small>{stats.pendingContracts} pendientes</small></div></article>
         </section>
