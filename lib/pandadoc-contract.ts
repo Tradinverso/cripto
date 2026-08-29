@@ -44,7 +44,12 @@ function personCell(title:string,rows:Array<[string,string]>) { return cell([
 export async function createPandaDocContract(student:ContractStudent,payments:ContractPayment[],provider:Provider) {
   const total=student.plan*student.installmentAmount;
   const paidPayments=payments.filter(payment=>payment.status==="paid");
-  const unlocks:Record<number,string>={1:"Pilar Trading + software + comunidad + directos + operativas + canal de seguimiento + evaluación inicial + sesión de onboarding",2:"Se añade Psicotrading y continúa el seguimiento",3:"Se añade Optimización Financiera y queda confirmado el acceso completo",4:"Se mantiene el acceso completo a todo el programa"};
+  const unlocks:Record<number,string>={
+    1:"Pilar Trading, comunidad de Discord, software TRADINVERSO, canal de seguimiento individual, directos y operativas en directo. Onboarding inicial y entrega del cuestionario de evolución. Psicotrading y Optimización Financiera permanecen cerrados.",
+    2:"Se abre Psicotrading y se mantiene todo lo anterior. Se realiza una llamada individual con David Rosell para revisar el resultado del cuestionario de evolución, orientar al alumno y definir su planificación individualizada.",
+    3:"Se abre Optimización Financiera y queda confirmado el acceso completo a los tres pilares y a todos los servicios del programa.",
+    4:"Se mantiene el acceso completo a los tres pilares y a todos los servicios del programa.",
+  };
   const paymentRows=[
     new TableRow({tableHeader:true,children:[
       cell([new Paragraph({children:[run("Pago",{bold:true,color:"FFFFFF",size:16})]})],700,NAVY),
@@ -81,9 +86,14 @@ export async function createPandaDocContract(student:ContractStudent,payments:Co
       body("Este plan no funciona como una suscripción mensual. Que el alumno deje de utilizar la formación, la comunidad o las sesiones no elimina el compromiso de completar las cantidades acordadas."),
       heading("Qué incluye TRADINVERSO"),
       body("La formación está dividida en tres pilares: Trading, Psicotrading y Optimización Financiera."),
-      body("Desde el primer pago, el alumno tendrá acceso al Pilar Trading, al software TRADINVERSO, a la comunidad, a los directos, a las operativas, al canal de seguimiento, a una evaluación inicial y a una sesión inicial de onboarding. Los demás pilares formativos se abrirán progresivamente con cada pago."),
+      body("Desde el primer pago, el alumno tendrá acceso al Pilar Trading, a la comunidad de Discord, al software TRADINVERSO, al canal de seguimiento individual, a los directos y a las operativas en directo. También se realizará el onboarding inicial y se entregará el cuestionario de evolución. Psicotrading y Optimización Financiera permanecerán cerrados hasta los pagos indicados."),
       heading("Cómo se abre el acceso"),
-      keyValueTable([["Después del pago 1","Pilar Trading, software TRADINVERSO, comunidad, directos, operativas, canal de seguimiento, evaluación inicial y una sesión de onboarding."],["Después del pago 2","Se añade Psicotrading. Continúan la comunidad, los directos, las operativas y el canal de seguimiento."],["Después del pago 3","Se añade Optimización Financiera. Acceso completo a todo el programa confirmado."],...(student.plan===4?[["Después del pago 4","Los tres pilares permanecen disponibles y se mantiene el acceso completo."] as [string,string]]:[])]),
+      keyValueTable([
+        ["Después del pago 1","Se activa el Pilar Trading, la comunidad de Discord, el software TRADINVERSO, el canal de seguimiento individual, los directos y las operativas en directo. Se realiza el onboarding inicial y se entrega el cuestionario de evolución. Psicotrading y Optimización Financiera permanecen cerrados."],
+        ["Después del pago 2","Se abre Psicotrading y se mantiene todo lo anterior. Se realiza una llamada individual con David Rosell para revisar el resultado del cuestionario de evolución, orientar al alumno y definir su planificación individualizada."],
+        ["Después del pago 3","Se abre Optimización Financiera y queda confirmado el acceso completo a los tres pilares y a todos los servicios del programa."],
+        ...(student.plan===4?[["Después del pago 4","Se mantiene el acceso completo a los tres pilares y a todos los servicios del programa."] as [string,string]]:[]),
+      ]),
       heading("Calendario de pagos"),
       body(`El precio total acordado es de ${total} ${student.currency}, dividido en ${student.plan} pagos de ${student.installmentAmount} ${student.currency}.`),
       ...(paidPayments.length?[body(`A la fecha de emisión de este acuerdo, ${paidPayments.length===1?"el primer pago figura":"los pagos indicados figuran"} como recibido${paidPayments.length===1?"":"s"} en el calendario.`)]:[]),
@@ -96,8 +106,8 @@ export async function createPandaDocContract(student:ContractStudent,payments:Co
       heading("Confirmación del acuerdo"),
       body("Con sus firmas, TRADINVERSO y el alumno confirman que entienden el plan elegido, las fechas, el acceso progresivo y la pausa inmediata del servicio cuando exista un pago pendiente."),
       new Table({width:{size:9440,type:WidthType.DXA},columnWidths:[4720,4720],borders,rows:[new TableRow({children:[
-        cell([new Paragraph({children:[run("TRADINVERSO / PRESTADOR",{bold:true,color:BLUE,size:16})],spacing:{after:80}}),new Paragraph({children:[run(`${provider.name} · DNI ${provider.documentId}`,{size:17})],spacing:{after:80}}),new Paragraph({children:[run("Firma: ",{bold:true,color:MUTED,size:16}),run("[signature:Tradinverso:p_sig____________]",{size:16})],spacing:{after:90}}),new Paragraph({children:[run("Fecha: ",{bold:true,color:MUTED,size:16}),run("[date:Tradinverso:p_date________]",{size:16})]})],4720),
-        cell([new Paragraph({children:[run("EL ALUMNO",{bold:true,color:BLUE,size:16})],spacing:{after:80}}),new Paragraph({children:[run(student.fullName,{size:17})],spacing:{after:80}}),new Paragraph({children:[run("Firma: ",{bold:true,color:MUTED,size:16}),run("[signature:Alumno:s_sig________________]",{size:16})],spacing:{after:90}}),new Paragraph({children:[run("Fecha: ",{bold:true,color:MUTED,size:16}),run("[date:Alumno:s_date________]",{size:16})]})],4720),
+        cell([new Paragraph({children:[run("TRADINVERSO / PRESTADOR",{bold:true,color:BLUE,size:16})],spacing:{after:80}}),new Paragraph({children:[run(`${provider.name} · DNI ${provider.documentId}`,{size:17})],spacing:{after:80}}),new Paragraph({children:[run("[signature:Tradinverso:p_sig____________]",{color:"FFFFFF",size:16})],spacing:{after:90}}),new Paragraph({children:[run("[date:Tradinverso:p_date________]",{color:"FFFFFF",size:16})]})],4720),
+        cell([new Paragraph({children:[run("EL ALUMNO",{bold:true,color:BLUE,size:16})],spacing:{after:80}}),new Paragraph({children:[run(`${student.fullName} · DNI / Pasaporte ${student.documentId}`,{size:17})],spacing:{after:80}}),new Paragraph({children:[run("[signature:Alumno:s_sig________________]",{color:"FFFFFF",size:16})],spacing:{after:90}}),new Paragraph({children:[run("[date:Alumno:s_date________]",{color:"FFFFFF",size:16})]})],4720),
       ]})]}),
     ],
   }]});
