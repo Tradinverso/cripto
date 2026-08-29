@@ -21,6 +21,7 @@ type NewStudent = {
   contractRequired?: boolean;
   notes?: string;
   dueDates?: string[];
+  paidInstallments?: number[];
 };
 
 export async function GET(request: Request) {
@@ -121,13 +122,20 @@ export async function POST(request: Request) {
       contractStatus: body.contractRequired === false ? "not_required" : "pending",
       notes: body.notes?.trim() || "",
     }).returning();
-    await db.insert(payments).values(dueDates.map((dueDate, index) => ({
-      studentId: student.id,
-      installmentNo: index + 1,
-      amount: installmentAmount,
-      currency,
-      dueDate,
-    })));
+    const paidInstallments = new Set((body.paidInstallments || [])
+      .filter((installment) => Number.isInteger(installment) && installment >= 1 && installment <= plan));
+    await db.insert(payments).values(dueDates.map((dueDate, index) => {
+      const alreadyPaid = paidInstallments.has(index + 1);
+      return {
+        studentId: student.id,
+        installmentNo: index + 1,
+        amount: installmentAmount,
+        currency,
+        dueDate,
+        status: alreadyPaid ? "paid" : "pending",
+        paidAt: alreadyPaid ? dueDate : null,
+      };
+    }));
     return Response.json({ student }, { status: 201 });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "No se pudo guardar el alumno." }, { status: 500 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { importSummary, parseStudentText } from "../lib/student-import";
 
 type Payment = {
   id: number;
@@ -58,6 +59,7 @@ const emptyForm = {
   contractRequired: true,
   notes: "",
   dueDates: ["", "", "", ""],
+  paidInstallments: [] as number[],
 };
 
 function formatDate(value: string) {
@@ -148,6 +150,8 @@ export function Dashboard() {
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<Student | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [quickText, setQuickText] = useState("");
+  const [quickStatus, setQuickStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const [pandadocBusy, setPandadocBusy] = useState(false);
   const [pdfUrl, setPdfUrl] = useState("");
@@ -282,6 +286,8 @@ export function Dashboard() {
       const payload = await response.json() as { error?: string };
       if (!response.ok) throw new Error(payload.error || "No se pudo crear el alumno.");
       setForm(emptyForm);
+      setQuickText("");
+      setQuickStatus("");
       setShowForm(false);
       await loadStudents();
     } catch (cause) {
@@ -352,6 +358,32 @@ export function Dashboard() {
     setPdfUrl(student.signedPdfUrl || "");
   }
 
+  function openNewStudent() {
+    setForm({
+      ...emptyForm,
+      network: privateConfig?.payment.usdt.network || "TRC20 (TRON)",
+      wallet: privateConfig?.payment.usdt.wallet || "",
+      dueDates: ["", "", "", ""],
+      paidInstallments: [],
+    });
+    setQuickText("");
+    setQuickStatus("");
+    setShowForm(true);
+  }
+
+  function detectStudentData() {
+    if (!quickText.trim()) {
+      setQuickStatus("Pega primero los datos que te ha enviado el alumno.");
+      return;
+    }
+    const detected = parseStudentText(quickText, {
+      usdtNetwork: privateConfig?.payment.usdt.network || "TRC20 (TRON)",
+      usdtWallet: privateConfig?.payment.usdt.wallet || "",
+    });
+    setForm(detected);
+    setQuickStatus(importSummary(detected));
+  }
+
   const viewCopy = {
     panel: ["Control de contratos", "Alumnos, cobros y accesos en un solo lugar."],
     students: ["Alumnos", "Fichas, planes y estado de acceso."],
@@ -379,7 +411,7 @@ export function Dashboard() {
       <section className="workspace" id="panel">
         <header className="topbar">
           <div><p className="eyebrow">GESTIÓN INTERNA</p><h1>{viewCopy[0]}</h1><p>{viewCopy[1]}</p></div>
-          <div className="topbar-actions"><form action="/api/auth/logout" method="post"><button className="logout-button" type="submit">Cerrar sesión</button></form><button className="primary-button" type="button" onClick={() => setShowForm(true)}><span>＋</span>Nuevo alumno</button></div>
+          <div className="topbar-actions"><form action="/api/auth/logout" method="post"><button className="logout-button" type="submit">Cerrar sesión</button></form><button className="primary-button" type="button" onClick={openNewStudent}><span>＋</span>Nuevo alumno</button></div>
         </header>
 
         {error && <div className="alert" role="alert">{error}<button type="button" onClick={() => setError("")}>×</button></div>}
@@ -424,7 +456,7 @@ export function Dashboard() {
 
             <aside className="panel quick-panel" id="contratos">
               <div className="panel-heading"><div><h2>Acciones rápidas</h2><p>Tu operativa diaria</p></div></div>
-              <button className="quick-action" type="button" onClick={() => setShowForm(true)}><span className="quick-icon">＋</span><span><strong>Registrar alumno</strong><small>Crear ficha y calendario</small></span><b>›</b></button>
+              <button className="quick-action" type="button" onClick={openNewStudent}><span className="quick-icon">＋</span><span><strong>Registrar alumno</strong><small>Pegar datos y crear calendario</small></span><b>›</b></button>
               <a className="quick-action" href={privateConfig?.drive.pending || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">▤</span><span><strong>Pendientes de firma</strong><small>Abrir carpeta de Drive</small></span><b>›</b></a>
               <a className="quick-action" href={privateConfig?.drive.signed || "#"} target="_blank" rel="noreferrer"><span className="quick-icon">↑</span><span><strong>Contratos firmados</strong><small>PDF privados en Drive</small></span><b>›</b></a>
               <div className="drive-health"><span>✓</span><div><strong>{privateConfig?.drive.archiveConfigured ? "Archivado automático activo" : "Drive conectado"}</strong><small>{privateConfig?.drive.archiveConfigured ? "Los contratos firmados se guardan solos" : "Carpetas preparadas para los contratos"}</small></div></div>
@@ -447,7 +479,7 @@ export function Dashboard() {
             <div className="student-table" role="table" aria-label="Alumnos">
               <div className="table-row table-head" role="row"><span>ALUMNO</span><span>PLAN</span><span>PROGRESO</span><span>PRÓXIMO PAGO</span><span>CONTRATO</span><span>ACCESO</span></div>
               {loading && <div className="empty-state"><strong>Cargando alumnos…</strong></div>}
-              {!loading && filtered.length === 0 && <div className="empty-state"><span>◎</span><strong>Aún no hay alumnos</strong><p>Crea el primero para generar su calendario y contrato.</p><button type="button" onClick={() => setShowForm(true)}>Registrar alumno</button></div>}
+              {!loading && filtered.length === 0 && <div className="empty-state"><span>◎</span><strong>Aún no hay alumnos</strong><p>Crea el primero para generar su calendario y contrato.</p><button type="button" onClick={openNewStudent}>Registrar alumno</button></div>}
               {filtered.map((student) => {
                 const paid = student.payments.filter((payment) => payment.status === "paid").length;
                 const next = student.payments.find((payment) => payment.status !== "paid");
@@ -499,6 +531,14 @@ export function Dashboard() {
           <section className="modal" role="dialog" aria-modal="true" aria-labelledby="new-student-title">
             <div className="modal-header"><div><p className="eyebrow">NUEVA INCORPORACIÓN</p><h2 id="new-student-title">Registrar alumno</h2><p>La ficha creará automáticamente su calendario de cuotas.</p></div><button type="button" aria-label="Cerrar" onClick={() => setShowForm(false)}>×</button></div>
             <form onSubmit={createStudent}>
+              <div className="form-section quick-import-section">
+                <div className="quick-import-card">
+                  <div className="quick-import-heading"><div><span>ALTA RÁPIDA</span><h3>Pega todos los datos en un solo bloque</h3><p>Puede venir desde WhatsApp o correo. Ordenaremos nombre, contacto, plan, fechas y pagos ya cobrados.</p></div><b>✦</b></div>
+                  <textarea rows={7} aria-label="Datos del alumno para detectar" placeholder={"Ejemplo:\nNombre y apellidos\nDNI: 12345678A\nPaís: España\nCorreo: alumno@email.com\nTeléfono: 600000000\n510 USDT - 28 septiembre 2026\n510 USDT - 28 octubre 2026\n510 USDT - 28 noviembre 2026\nPrimer pago cobrado"} value={quickText} onChange={(event) => setQuickText(event.target.value)} />
+                  <div className="quick-import-actions"><button className="detect-button" type="button" onClick={detectStudentData}>Detectar y rellenar</button><small>Después podrás corregir cualquier campo antes de guardar.</small></div>
+                  {quickStatus && <p className="quick-import-status" role="status">{quickStatus}</p>}
+                </div>
+              </div>
               <div className="form-section"><h3>Datos del alumno</h3><div className="form-grid">
                 <label className="wide">Nombre y apellidos<input required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></label>
                 <label>DNI / Pasaporte<input required value={form.documentId} onChange={(e) => setForm({ ...form, documentId: e.target.value })} /></label>
@@ -515,7 +555,7 @@ export function Dashboard() {
                 {form.currency !== "EUR" && <label className="wide">Wallet<input value={form.wallet} onChange={(e) => setForm({ ...form, wallet: e.target.value })} /></label>}
                 <label className="wide">Contrato<select value={form.contractRequired ? "required" : "not_required"} onChange={(e) => setForm({ ...form, contractRequired: e.target.value === "required" })}><option value="required">Requiere contrato</option><option value="not_required">Sin contrato</option></select></label>
               </div></div>
-              <div className="form-section"><h3>Fechas de pago</h3><div className="dates-grid">{Array.from({ length: form.plan }, (_, index) => <label key={index}>Pago {index + 1}<input required type="date" value={form.dueDates[index]} onChange={(e) => { const dueDates = [...form.dueDates]; dueDates[index] = e.target.value; setForm({ ...form, dueDates }); }} /></label>)}</div></div>
+              <div className="form-section"><h3>Fechas y estado inicial</h3><div className="dates-grid">{Array.from({ length: form.plan }, (_, index) => <div className="date-field" key={index}><label>Pago {index + 1}<input required type="date" value={form.dueDates[index]} onChange={(e) => { const dueDates = [...form.dueDates]; dueDates[index] = e.target.value; setForm({ ...form, dueDates }); }} /></label><label className="paid-check"><input type="checkbox" checked={form.paidInstallments.includes(index + 1)} onChange={(event) => { const paidInstallments = event.target.checked ? [...form.paidInstallments, index + 1] : form.paidInstallments.filter((number) => number !== index + 1); setForm({ ...form, paidInstallments }); }} />Ya cobrado</label></div>)}</div></div>
               <div className="form-section"><label>Notas internas<textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label></div>
               <footer className="modal-footer"><button type="button" className="secondary-button" onClick={() => setShowForm(false)}>Cancelar</button><button className="primary-button" disabled={saving}>{saving ? "Guardando…" : "Guardar alumno"}</button></footer>
             </form>
