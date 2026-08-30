@@ -66,7 +66,9 @@ export async function createPandaDocContract(student:ContractStudent,payments:Co
       cell([new Paragraph({children:[run(unlocks[payment.installmentNo]||"Se mantiene el acceso completo",{size:16})]})],3640),
     ]})),
   ];
-  const paymentDestination=student.currency==="EUR"?provider.phone:(student.wallet||"Pendiente de indicar");
+  const paymentDestination=student.currency==="EUR"
+    ? (student.network==="SeQura"?"Gestión mediante SeQura":provider.phone)
+    : (student.wallet||"Pendiente de indicar");
   const doc=new Document({creator:"TRADINVERSO",title:`Acuerdo privado - ${student.fullName}`,description:"Acuerdo privado de acceso y pago del programa TRADINVERSO",styles:{default:{document:{run:{font:"Arial",size:19,color:NAVY},paragraph:{spacing:{after:100,line:278}}},heading1:{run:{font:"Arial",size:26,bold:true,color:BLUE},paragraph:{spacing:{before:260,after:120}}}}},sections:[{
     properties:{page:{size:{width:11906,height:16838},margin:{top:950,right:1300,bottom:950,left:1300,header:500,footer:500}}},
     headers:{default:new Header({children:[new Paragraph({alignment:AlignmentType.RIGHT,children:[run("TRADINVERSO · ACUERDO PRIVADO",{bold:true,color:MUTED,size:15})]})]})},

@@ -55,7 +55,7 @@ const emptyForm = {
   email: "",
   phone: "",
   plan: 3,
-  installmentAmount: 510,
+  installmentAmount: 550,
   currency: "USDT",
   network: "TRC20 (TRON)",
   wallet: "",
@@ -429,9 +429,9 @@ export function Dashboard() {
 
         {activeView === "panel" && <section className="stats" aria-label="Resumen">
           <article className="stat-card"><span className="stat-icon blue">◎</span><div><p>Alumnos activos</p><strong>{stats.active}</strong><small>{students.length} registrados</small></div></article>
-          <article className="stat-card"><span className="stat-icon gold">€</span><div><p>Por cobrar · Euros</p><strong>{formatEuroTotal(stats.receivable)}</strong><small>Pagos en Bizum pendientes</small></div></article>
+          <article className="stat-card"><span className="stat-icon gold">€</span><div><p>Por cobrar · Euros</p><strong>{formatEuroTotal(stats.receivable)}</strong><small>Pagos en euros pendientes</small></div></article>
           <article className="stat-card"><span className="stat-icon crypto">$</span><div><p>Por cobrar · Cripto</p><strong>{formatCryptoTotal(stats.receivable)}</strong><small>Cobros cripto pendientes</small></div></article>
-          <article className="stat-card"><span className="stat-icon green">€</span><div><p>Cobrado · Euros</p><strong>{formatEuroTotal(stats.collected)}</strong><small>Ingresos recibidos por Bizum</small></div></article>
+          <article className="stat-card"><span className="stat-icon green">€</span><div><p>Cobrado · Euros</p><strong>{formatEuroTotal(stats.collected)}</strong><small>Ingresos recibidos en euros</small></div></article>
           <article className="stat-card"><span className="stat-icon teal">$</span><div><p>Cobrado · Cripto</p><strong>{formatCryptoTotal(stats.collected)}</strong><small>Ingresos cripto recibidos</small></div></article>
           <article className="stat-card"><span className="stat-icon red">!</span><div><p>Pagos vencidos</p><strong>{stats.overdue}</strong><small>{stats.overdue ? "Requieren seguimiento" : "Todo al día"}</small></div></article>
           <article className="stat-card"><span className="stat-icon violet">▤</span><div><p>Contratos firmados</p><strong>{stats.signed}</strong><small>{stats.pendingContracts} pendientes</small></div></article>
@@ -440,7 +440,7 @@ export function Dashboard() {
         {activeView === "panel" && <>
           <section className="finance-grid" aria-label="Resumen financiero mensual">
             <article className="panel finance-panel euro-panel">
-              <div className="panel-heading finance-heading"><div><p className="finance-kicker">EUROS · BIZUM</p><h2>Entradas y previsión</h2><p>Histórico reciente y cobros programados</p></div><div className="month-summary"><span><small>Este mes</small><strong>{(monthlyFinance.current?.euroCollected || 0).toLocaleString("es-ES")} €</strong></span><span><small>Próximo mes</small><strong>{(monthlyFinance.next?.euroExpected || 0).toLocaleString("es-ES")} €</strong></span></div></div>
+              <div className="panel-heading finance-heading"><div><p className="finance-kicker">EUROS · BIZUM / SEQURA</p><h2>Entradas y previsión</h2><p>Histórico reciente y cobros programados</p></div><div className="month-summary"><span><small>Este mes</small><strong>{(monthlyFinance.current?.euroCollected || 0).toLocaleString("es-ES")} €</strong></span><span><small>Próximo mes</small><strong>{(monthlyFinance.next?.euroExpected || 0).toLocaleString("es-ES")} €</strong></span></div></div>
               <MonthlyBars rows={monthlyFinance.euro} formatter={(value) => `${value.toLocaleString("es-ES")} €`} emptyLabel="Todavía no hay movimientos en euros para este periodo." />
             </article>
             <article className="panel finance-panel crypto-panel">
@@ -545,7 +545,7 @@ export function Dashboard() {
               <div className="form-section quick-import-section">
                 <div className="quick-import-card">
                   <div className="quick-import-heading"><div><span>ALTA RÁPIDA</span><h3>Pega todos los datos en un solo bloque</h3><p>Puede venir desde WhatsApp o correo. Ordenaremos nombre, contacto, plan, fechas y pagos ya cobrados.</p></div><b>✦</b></div>
-                  <textarea rows={7} aria-label="Datos del alumno para detectar" placeholder={"Ejemplo:\nNombre y apellidos\nDNI: 12345678A\nPaís: España\nCorreo: alumno@email.com\nTeléfono: 600000000\n510 USDT - 28 septiembre 2026\n510 USDT - 28 octubre 2026\n510 USDT - 28 noviembre 2026\nPrimer pago cobrado"} value={quickText} onChange={(event) => setQuickText(event.target.value)} />
+                  <textarea rows={7} aria-label="Datos del alumno para detectar" placeholder={"Ejemplo:\nNombre y apellidos\nDNI: 12345678A\nPaís: España\nCorreo: alumno@email.com\nTeléfono: 600000000\n550 USDT - 28 septiembre 2026\n550 USDT - 28 octubre 2026\n550 USDT - 28 noviembre 2026\nPrimer pago cobrado"} value={quickText} onChange={(event) => setQuickText(event.target.value)} />
                   <div className="quick-import-actions"><button className="detect-button" type="button" onClick={detectStudentData}>Detectar y rellenar</button><small>Después podrás corregir cualquier campo antes de guardar.</small></div>
                   {quickStatus && <p className="quick-import-status" role="status">{quickStatus}</p>}
                 </div>
@@ -559,12 +559,13 @@ export function Dashboard() {
                 <label>Teléfono<input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
               </div></div>
               <div className="form-section"><h3>Plan y forma de pago</h3><div className="form-grid">
-                <label>Plan<select value={form.plan} onChange={(e) => { const plan = Number(e.target.value); setForm({ ...form, plan, installmentAmount: form.currency === "EUR" ? (plan === 4 ? 375 : 500) : (plan === 4 ? 385 : 510) }); }}><option value={3}>3 pagos</option><option value={4}>4 pagos</option></select></label>
-                <label>Importe de cada pago<input required min="1" step="1" type="number" value={form.installmentAmount} onChange={(e) => setForm({ ...form, installmentAmount: Number(e.target.value) })} /></label>
-                <label>Moneda<select value={form.currency} onChange={(e) => { const currency = e.target.value; const paymentConfig = currency === "USDC" ? privateConfig?.payment.usdc : privateConfig?.payment.usdt; setForm({ ...form, currency, installmentAmount: currency === "EUR" ? (form.plan === 4 ? 375 : 500) : (form.plan === 4 ? 385 : 510), network: currency === "EUR" ? "Bizum" : paymentConfig?.network || (currency === "USDC" ? "BEP20 (BNB Smart Chain)" : "TRC20 (TRON)"), wallet: currency === "EUR" ? "" : paymentConfig?.wallet || "" }); }}><option>USDT</option><option>USDC</option><option>EUR</option></select></label>
-                {form.currency === "EUR" ? <label>Método de pago<select value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })}><option>Bizum</option></select></label> : <label>Red configurada<input readOnly value={form.network} /></label>}
+                <label>Plan<input readOnly value="3 pagos" /></label>
+                <label>Importe de cada pago<input readOnly required type="number" value={form.installmentAmount} /></label>
+                <label>Moneda<select value={form.currency} onChange={(e) => { const currency = e.target.value; const paymentConfig = currency === "USDC" ? privateConfig?.payment.usdc : privateConfig?.payment.usdt; setForm({ ...form, currency, plan: 3, installmentAmount: 550, network: currency === "EUR" ? "Bizum" : paymentConfig?.network || (currency === "USDC" ? "BEP20 (BNB Smart Chain)" : "TRC20 (TRON)"), wallet: currency === "EUR" ? "" : paymentConfig?.wallet || "" }); }}><option>USDT</option><option>USDC</option><option>EUR</option></select></label>
+                {form.currency === "EUR" ? <label>Método de pago<select value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })}><option>Bizum</option><option>SeQura</option></select></label> : <label>Red configurada<input readOnly value={form.network} /></label>}
                 {form.currency !== "EUR" && <label className="wide">Wallet configurada<input readOnly value={form.wallet} /><small className="fixed-payment-note">Se asigna automáticamente según la moneda elegida.</small></label>}
                 <label className="wide">Contrato<select value={form.contractRequired ? "required" : "not_required"} onChange={(e) => setForm({ ...form, contractRequired: e.target.value === "required" })}><option value="required">Requiere contrato</option><option value="not_required">Sin contrato</option></select></label>
+                <div className={`plan-price-summary wide ${form.currency === "EUR" ? "euro" : "crypto"}`}><span>{form.currency === "EUR" ? "€" : "$"}</span><div><strong>3 cuotas de 550 {form.currency === "EUR" ? "€" : "USD"} · Total 1.650 {form.currency === "EUR" ? "€" : "USD"}</strong><small>{form.currency === "EUR" ? "Desglose interno: precio base 1.497 € + 153 € de financiación (51 € por cuota)." : "Plan estándar para pagos mediante USDT o USDC."}</small></div></div>
               </div></div>
               <div className="form-section"><h3>Fechas y estado inicial</h3><div className="dates-grid">{Array.from({ length: form.plan }, (_, index) => <div className="date-field" key={index}><label>Pago {index + 1}<input required type="date" value={form.dueDates[index]} onChange={(e) => { const dueDates = [...form.dueDates]; dueDates[index] = e.target.value; setForm({ ...form, dueDates }); }} /></label><label className="paid-check"><input type="checkbox" checked={form.paidInstallments.includes(index + 1)} onChange={(event) => { const paidInstallments = event.target.checked ? [...form.paidInstallments, index + 1] : form.paidInstallments.filter((number) => number !== index + 1); setForm({ ...form, paidInstallments }); }} />Ya cobrado</label></div>)}</div></div>
               <div className="form-section"><label>Notas internas<textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label></div>

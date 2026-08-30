@@ -95,8 +95,8 @@ export async function POST(request: Request) {
     const documentId = body.documentId?.trim() || "";
     const email = body.email?.trim() || "";
     const phone = body.phone?.trim() || "";
-    const plan = body.plan === 4 ? 4 : 3;
-    const installmentAmount = Number(body.installmentAmount);
+    const plan = 3;
+    const installmentAmount = 550;
     const currency = body.currency === "EUR" ? "EUR" : body.currency === "USDC" ? "USDC" : "USDT";
     const privateEnv = env as unknown as Record<string, string | undefined>;
     const defaultNetwork = currency === "USDT"

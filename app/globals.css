@@ -216,6 +216,13 @@ nav { display:grid; gap:7px; }
 .form-section input:focus,.form-section select:focus,.form-section textarea:focus,.pdf-field input:focus { border-color:#76879e; box-shadow:0 0 0 3px rgba(71,91,121,.08); }
 .form-section input[readonly] { background:#f4f6f8; color:#425269; cursor:not-allowed; }
 .fixed-payment-note { color:#7e8b9d; font-size:9px; font-weight:500; }
+.plan-price-summary { display:flex; align-items:center; gap:11px; padding:11px 12px; border:1px solid #dbe5ef; border-radius:8px; background:#f4f8fc; }
+.plan-price-summary>span { width:29px; height:29px; flex:0 0 auto; display:grid; place-items:center; border-radius:7px; background:#dceaf7; color:#2e6694; font-weight:900; }
+.plan-price-summary strong,.plan-price-summary small { display:block; }
+.plan-price-summary strong { color:#34455d; font-size:10px; }
+.plan-price-summary small { margin-top:3px; color:#7b899a; font-size:9px; font-weight:500; }
+.plan-price-summary.euro { border-color:#eadfca; background:#fcf8ef; }
+.plan-price-summary.euro>span { background:#f2e5c9; color:#8c6724; }
 .dates-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
 .quick-import-section { padding-top:20px; }
 .quick-import-card { border:1px solid #d9e3f0; background:linear-gradient(135deg,#f5f8fc,#eef4fb); border-radius:10px; padding:17px; }

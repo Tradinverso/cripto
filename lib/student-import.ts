@@ -211,20 +211,14 @@ export function parseStudentText(rawText: string, defaults: ImportDefaults): Qui
     address = candidates.slice(0, 3).join(", ");
   }
 
-  const currency: QuickStudentImport["currency"] = /\b(?:bizum|euros?|eur)\b|€/.test(normalizedText)
+  const currency: QuickStudentImport["currency"] = /\b(?:bizum|sequra|euros?|eur)\b|€/.test(normalizedText)
     ? "EUR"
     : /\busdc\b/.test(normalizedText) ? "USDC" : "USDT";
-  const planMention = normalizedText.match(/\b([34])\s*(?:pagos|plazos|cuotas|meses)\b|\b(?:plan|pagos?|plazos?|cuotas?)\s*(?:de|en)?\s*([34])\b/);
-  const plan = paymentsFound.length === 4 || paymentsFound.length === 3
-    ? paymentsFound.length
-    : Number(planMention?.[1] || planMention?.[2] || 3);
-  const amountMention = text.match(/\b(\d+(?:[.,]\d{1,2})?)\s*(?:USDT|USDC|EUR|EUROS?|€)\b/i);
-  const installmentAmount = paymentsFound[0]?.amount
-    || (amountMention ? Math.round(Number(amountMention[1].replace(",", "."))) : 0)
-    || (currency === "EUR" ? (plan === 4 ? 375 : 500) : (plan === 4 ? 385 : 510));
+  const plan = 3;
+  const installmentAmount = 550;
 
   const networkEntry = labeledValue(lines, ["red", "network", "metodo(?: de pago)?"]);
-  let network = currency === "EUR" ? "Bizum" : networkEntry.value;
+  let network = currency === "EUR" ? (/\bsequra\b/.test(normalizedText) ? "SeQura" : "Bizum") : networkEntry.value;
   if (currency !== "EUR" && !network) {
     const networkMatch = text.match(/\b(?:TRC20(?:\s*\(TRON\))?|TRON|ERC20|BEP20)\b/i);
     network = networkMatch?.[0] || (currency === "USDT" ? defaults.usdtNetwork : defaults.usdcNetwork);
