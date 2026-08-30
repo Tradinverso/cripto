@@ -211,14 +211,14 @@ export function parseStudentText(rawText: string, defaults: ImportDefaults): Qui
     address = candidates.slice(0, 3).join(", ");
   }
 
-  const currency: QuickStudentImport["currency"] = /\b(?:bizum|sequra|euros?|eur)\b|€/.test(normalizedText)
+  const currency: QuickStudentImport["currency"] = /\b(?:bizum|stripe|euros?|eur)\b|€/.test(normalizedText)
     ? "EUR"
     : /\busdc\b/.test(normalizedText) ? "USDC" : "USDT";
   const plan = 3;
   const installmentAmount = 550;
 
   const networkEntry = labeledValue(lines, ["red", "network", "metodo(?: de pago)?"]);
-  let network = currency === "EUR" ? (/\bsequra\b/.test(normalizedText) ? "SeQura" : "Bizum") : networkEntry.value;
+  let network = currency === "EUR" ? (/\bstripe\b/.test(normalizedText) ? "Stripe" : "Bizum") : networkEntry.value;
   if (currency !== "EUR" && !network) {
     const networkMatch = text.match(/\b(?:TRC20(?:\s*\(TRON\))?|TRON|ERC20|BEP20)\b/i);
     network = networkMatch?.[0] || (currency === "USDT" ? defaults.usdtNetwork : defaults.usdcNetwork);

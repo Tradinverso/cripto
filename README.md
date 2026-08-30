@@ -8,7 +8,7 @@ Aplicación interna para registrar alumnos que pagan en USDT o USDC, controlar s
 
 ## Funciones principales
 
-- Plan estándar de 3 pagos de 550 USDT/USDC o 550 € mediante Bizum/SeQura (total 1.650).
+- Plan estándar de 3 pagos de 550 USDT/USDC o 550 € mediante Bizum/Stripe (total 1.650).
 - Calendario de vencimientos y control de cuotas pagadas, pendientes o vencidas.
 - Pausa del acceso cuando existe un pago vencido.
 - Contrato personalizado imprimible y exportable como PDF.
