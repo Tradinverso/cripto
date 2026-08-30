@@ -214,6 +214,8 @@ nav { display:grid; gap:7px; }
 .form-section label,.pdf-field { display:grid; gap:6px; color:#59667a; font-size:10px; font-weight:700; }
 .form-section input,.form-section select,.form-section textarea,.pdf-field input { width:100%; border:1px solid #dfe4eb; border-radius:7px; background:#fff; color:var(--ink); padding:10px 11px; outline:none; font-size:11px; font-weight:400; }
 .form-section input:focus,.form-section select:focus,.form-section textarea:focus,.pdf-field input:focus { border-color:#76879e; box-shadow:0 0 0 3px rgba(71,91,121,.08); }
+.form-section input[readonly] { background:#f4f6f8; color:#425269; cursor:not-allowed; }
+.fixed-payment-note { color:#7e8b9d; font-size:9px; font-weight:500; }
 .dates-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
 .quick-import-section { padding-top:20px; }
 .quick-import-card { border:1px solid #d9e3f0; background:linear-gradient(135deg,#f5f8fc,#eef4fb); border-radius:10px; padding:17px; }

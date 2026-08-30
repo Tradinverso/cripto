@@ -35,6 +35,10 @@ export async function GET() {
         network: privateEnv.USDT_NETWORK || "TRC20 (TRON)",
         wallet: privateEnv.USDT_WALLET || "",
       },
+      usdc: {
+        network: privateEnv.USDC_NETWORK || "BEP20 (BNB Smart Chain)",
+        wallet: privateEnv.USDC_WALLET || "",
+      },
     },
   });
 }

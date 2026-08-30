@@ -19,6 +19,8 @@ export type QuickStudentImport = {
 type ImportDefaults = {
   usdtNetwork: string;
   usdtWallet: string;
+  usdcNetwork: string;
+  usdcWallet: string;
   today?: Date;
 };
 
@@ -225,11 +227,13 @@ export function parseStudentText(rawText: string, defaults: ImportDefaults): Qui
   let network = currency === "EUR" ? "Bizum" : networkEntry.value;
   if (currency !== "EUR" && !network) {
     const networkMatch = text.match(/\b(?:TRC20(?:\s*\(TRON\))?|TRON|ERC20|BEP20)\b/i);
-    network = networkMatch?.[0] || (currency === "USDT" ? defaults.usdtNetwork : "");
+    network = networkMatch?.[0] || (currency === "USDT" ? defaults.usdtNetwork : defaults.usdcNetwork);
   }
 
   const walletEntry = labeledValue(lines, ["wallet", "direccion de pago", "destino del pago"]);
-  const wallet = currency === "USDT" ? walletEntry.value || defaults.usdtWallet : walletEntry.value;
+  const wallet = currency === "USDT"
+    ? walletEntry.value || defaults.usdtWallet
+    : currency === "USDC" ? walletEntry.value || defaults.usdcWallet : "";
   const contractRequired = !/\b(?:sin contrato|no requiere contrato|no hacemos contrato|contrato no requerido)\b/.test(normalizedText);
   const paidInstallments = installmentMentions(text);
   paymentsFound.forEach((payment, index) => {

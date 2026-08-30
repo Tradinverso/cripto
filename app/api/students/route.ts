@@ -99,8 +99,14 @@ export async function POST(request: Request) {
     const installmentAmount = Number(body.installmentAmount);
     const currency = body.currency === "EUR" ? "EUR" : body.currency === "USDC" ? "USDC" : "USDT";
     const privateEnv = env as unknown as Record<string, string | undefined>;
-    const network = body.network?.trim() || (currency === "USDT" ? privateEnv.USDT_NETWORK || "TRC20 (TRON)" : "");
-    const wallet = body.wallet?.trim() || (currency === "USDT" ? privateEnv.USDT_WALLET || "" : "");
+    const defaultNetwork = currency === "USDT"
+      ? privateEnv.USDT_NETWORK || "TRC20 (TRON)"
+      : currency === "USDC" ? privateEnv.USDC_NETWORK || "BEP20 (BNB Smart Chain)" : "Bizum";
+    const defaultWallet = currency === "USDT"
+      ? privateEnv.USDT_WALLET || ""
+      : currency === "USDC" ? privateEnv.USDC_WALLET || "" : "";
+    const network = body.network?.trim() || defaultNetwork;
+    const wallet = body.wallet?.trim() || defaultWallet;
     const dueDates = (body.dueDates || []).slice(0, plan);
     if (!fullName || !documentId || !phone || !Number.isInteger(installmentAmount) || installmentAmount <= 0 || dueDates.length !== plan || dueDates.some((date) => !date)) {
       return Response.json({ error: "Completa los datos obligatorios y todas las fechas de pago." }, { status: 400 });

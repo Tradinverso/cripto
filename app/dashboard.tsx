@@ -41,7 +41,10 @@ type PrivateConfig = {
   provider: { name: string };
   drive: { root: string; pending: string; signed: string; archiveConfigured: boolean };
   pandadoc: { configured: boolean; connected: boolean };
-  payment: { usdt: { network: string; wallet: string } };
+  payment: {
+    usdt: { network: string; wallet: string };
+    usdc: { network: string; wallet: string };
+  };
 };
 
 const emptyForm = {
@@ -169,9 +172,15 @@ export function Dashboard() {
       if (!configResponse.ok) throw new Error(configPayload.error || "No se pudo cargar la configuración privada.");
       setStudents(payload.students || []);
       setPrivateConfig(configPayload);
-      setForm((current) => current.currency === "USDT" && !current.wallet
-        ? { ...current, network: configPayload.payment?.usdt.network || "TRC20 (TRON)", wallet: configPayload.payment?.usdt.wallet || "" }
-        : current);
+      setForm((current) => {
+        if (current.currency === "EUR" || current.wallet) return current;
+        const paymentConfig = current.currency === "USDC" ? configPayload.payment?.usdc : configPayload.payment?.usdt;
+        return {
+          ...current,
+          network: paymentConfig?.network || (current.currency === "USDC" ? "BEP20 (BNB Smart Chain)" : "TRC20 (TRON)"),
+          wallet: paymentConfig?.wallet || "",
+        };
+      });
       setSelected((current) => {
         const targetId = selectedId || current?.id;
         return targetId ? (payload.students || []).find((item) => item.id === targetId) || null : current;
@@ -379,6 +388,8 @@ export function Dashboard() {
     const detected = parseStudentText(quickText, {
       usdtNetwork: privateConfig?.payment.usdt.network || "TRC20 (TRON)",
       usdtWallet: privateConfig?.payment.usdt.wallet || "",
+      usdcNetwork: privateConfig?.payment.usdc.network || "BEP20 (BNB Smart Chain)",
+      usdcWallet: privateConfig?.payment.usdc.wallet || "",
     });
     setForm(detected);
     setQuickStatus(importSummary(detected));
@@ -550,9 +561,9 @@ export function Dashboard() {
               <div className="form-section"><h3>Plan y forma de pago</h3><div className="form-grid">
                 <label>Plan<select value={form.plan} onChange={(e) => { const plan = Number(e.target.value); setForm({ ...form, plan, installmentAmount: form.currency === "EUR" ? (plan === 4 ? 375 : 500) : (plan === 4 ? 385 : 510) }); }}><option value={3}>3 pagos</option><option value={4}>4 pagos</option></select></label>
                 <label>Importe de cada pago<input required min="1" step="1" type="number" value={form.installmentAmount} onChange={(e) => setForm({ ...form, installmentAmount: Number(e.target.value) })} /></label>
-                <label>Moneda<select value={form.currency} onChange={(e) => { const currency = e.target.value; setForm({ ...form, currency, installmentAmount: currency === "EUR" ? (form.plan === 4 ? 375 : 500) : (form.plan === 4 ? 385 : 510), network: currency === "EUR" ? "Bizum" : currency === "USDT" ? privateConfig?.payment.usdt.network || "TRC20 (TRON)" : "", wallet: currency === "USDT" ? privateConfig?.payment.usdt.wallet || "" : "" }); }}><option>USDT</option><option>USDC</option><option>EUR</option></select></label>
-                {form.currency === "EUR" ? <label>Método de pago<select value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })}><option>Bizum</option></select></label> : <label>Red<input placeholder="Ej. TRC20, ERC20…" value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })} /></label>}
-                {form.currency !== "EUR" && <label className="wide">Wallet<input value={form.wallet} onChange={(e) => setForm({ ...form, wallet: e.target.value })} /></label>}
+                <label>Moneda<select value={form.currency} onChange={(e) => { const currency = e.target.value; const paymentConfig = currency === "USDC" ? privateConfig?.payment.usdc : privateConfig?.payment.usdt; setForm({ ...form, currency, installmentAmount: currency === "EUR" ? (form.plan === 4 ? 375 : 500) : (form.plan === 4 ? 385 : 510), network: currency === "EUR" ? "Bizum" : paymentConfig?.network || (currency === "USDC" ? "BEP20 (BNB Smart Chain)" : "TRC20 (TRON)"), wallet: currency === "EUR" ? "" : paymentConfig?.wallet || "" }); }}><option>USDT</option><option>USDC</option><option>EUR</option></select></label>
+                {form.currency === "EUR" ? <label>Método de pago<select value={form.network} onChange={(e) => setForm({ ...form, network: e.target.value })}><option>Bizum</option></select></label> : <label>Red configurada<input readOnly value={form.network} /></label>}
+                {form.currency !== "EUR" && <label className="wide">Wallet configurada<input readOnly value={form.wallet} /><small className="fixed-payment-note">Se asigna automáticamente según la moneda elegida.</small></label>}
                 <label className="wide">Contrato<select value={form.contractRequired ? "required" : "not_required"} onChange={(e) => setForm({ ...form, contractRequired: e.target.value === "required" })}><option value="required">Requiere contrato</option><option value="not_required">Sin contrato</option></select></label>
               </div></div>
               <div className="form-section"><h3>Fechas y estado inicial</h3><div className="dates-grid">{Array.from({ length: form.plan }, (_, index) => <div className="date-field" key={index}><label>Pago {index + 1}<input required type="date" value={form.dueDates[index]} onChange={(e) => { const dueDates = [...form.dueDates]; dueDates[index] = e.target.value; setForm({ ...form, dueDates }); }} /></label><label className="paid-check"><input type="checkbox" checked={form.paidInstallments.includes(index + 1)} onChange={(event) => { const paidInstallments = event.target.checked ? [...form.paidInstallments, index + 1] : form.paidInstallments.filter((number) => number !== index + 1); setForm({ ...form, paidInstallments }); }} />Ya cobrado</label></div>)}</div></div>
