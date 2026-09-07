@@ -98,7 +98,8 @@ export async function POST(request: Request) {
     const currency = body.currency === "EUR" ? "EUR" : body.currency === "USDC" ? "USDC" : "USDT";
     const specialStripePlan = currency === "EUR" && body.network?.trim().toLowerCase() === "stripe" && body.plan === 5;
     const plan = specialStripePlan ? 5 : 3;
-    const installmentAmount = specialStripePlan ? 320 : 550;
+    const requestedAmount = Number(body.installmentAmount);
+    const installmentAmount = specialStripePlan ? 320 : Number.isFinite(requestedAmount) && requestedAmount > 0 ? Math.round(requestedAmount) : 550;
     const privateEnv = env as unknown as Record<string, string | undefined>;
     const defaultNetwork = currency === "USDT"
       ? privateEnv.USDT_NETWORK || "TRC20 (TRON)"
