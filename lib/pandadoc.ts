@@ -49,14 +49,14 @@ export async function uploadPandaDoc(
   form.append("data", JSON.stringify({
     name: `Acuerdo TRADINVERSO - ${student.fullName}`,
     recipients: [
-      { email: student.email, first_name: firstName, last_name: lastName, role: "Alumno", signing_order: 1 },
-      { email: provider.email, first_name: providerFirstName, last_name: providerLastName, role: "Tradinverso", signing_order: 2 },
+      { email: student.email, first_name: firstName, last_name: lastName, role: "student", signing_order: 1 },
+      { email: provider.email, first_name: providerFirstName, last_name: providerLastName, role: "provider", signing_order: 2 },
     ],
     fields: {
-      s_sig: { value: "", role: "Alumno" },
-      s_date: { value: "", role: "Alumno" },
-      p_sig: { value: "", role: "Tradinverso" },
-      p_date: { value: "", role: "Tradinverso" },
+      s_sig: { value: "", role: "student" },
+      s_date: { value: "", role: "student" },
+      p_sig: { value: "", role: "provider" },
+      p_date: { value: "", role: "provider" },
     },
     parse_form_fields: false,
     tags: ["TRADINVERSO", "Contrato alumnos"],
