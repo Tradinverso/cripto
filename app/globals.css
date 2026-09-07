@@ -223,7 +223,7 @@ nav { display:grid; gap:7px; }
 .plan-price-summary small { margin-top:3px; color:#7b899a; font-size:9px; font-weight:500; }
 .plan-price-summary.euro { border-color:#eadfca; background:#fcf8ef; }
 .plan-price-summary.euro>span { background:#f2e5c9; color:#8c6724; }
-.dates-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.dates-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
 .quick-import-section { padding-top:20px; }
 .quick-import-card { border:1px solid #d9e3f0; background:linear-gradient(135deg,#f5f8fc,#eef4fb); border-radius:10px; padding:17px; }
 .quick-import-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }

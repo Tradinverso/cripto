@@ -95,9 +95,10 @@ export async function POST(request: Request) {
     const documentId = body.documentId?.trim() || "";
     const email = body.email?.trim() || "";
     const phone = body.phone?.trim() || "";
-    const plan = 3;
-    const installmentAmount = 550;
     const currency = body.currency === "EUR" ? "EUR" : body.currency === "USDC" ? "USDC" : "USDT";
+    const specialStripePlan = currency === "EUR" && body.network?.trim().toLowerCase() === "stripe" && body.plan === 5;
+    const plan = specialStripePlan ? 5 : 3;
+    const installmentAmount = specialStripePlan ? 320 : 550;
     const privateEnv = env as unknown as Record<string, string | undefined>;
     const defaultNetwork = currency === "USDT"
       ? privateEnv.USDT_NETWORK || "TRC20 (TRON)"

@@ -214,8 +214,10 @@ export function parseStudentText(rawText: string, defaults: ImportDefaults): Qui
   const currency: QuickStudentImport["currency"] = /\b(?:bizum|stripe|euros?|eur)\b|€/.test(normalizedText)
     ? "EUR"
     : /\busdc\b/.test(normalizedText) ? "USDC" : "USDT";
-  const plan = 3;
-  const installmentAmount = 550;
+  const stripeFivePayment = currency === "EUR" && /\bstripe\b/.test(normalizedText)
+    && (/\b5\s*(?:pagos|plazos|cuotas|meses)\b/.test(normalizedText) || paymentsFound.length >= 5);
+  const plan = stripeFivePayment ? 5 : 3;
+  const installmentAmount = stripeFivePayment ? 320 : 550;
 
   const networkEntry = labeledValue(lines, ["red", "network", "metodo(?: de pago)?"]);
   let network = currency === "EUR" ? (/\bstripe\b/.test(normalizedText) ? "Stripe" : "Bizum") : networkEntry.value;
@@ -244,7 +246,7 @@ export function parseStudentText(rawText: string, defaults: ImportDefaults): Qui
     if (/\bayer\b/.test(normalizedText)) inferred.setDate(inferred.getDate() - 1);
     if (/\b(?:hoy|ayer)\b/.test(normalizedText)) dueDates.unshift(isoDate(inferred.getFullYear(), inferred.getMonth() + 1, inferred.getDate()));
   }
-  while (dueDates.length < 4) dueDates.push("");
+  while (dueDates.length < 5) dueDates.push("");
 
   return {
     fullName,
