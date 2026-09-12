@@ -46,7 +46,9 @@ export async function createPandaDocContract(student:ContractStudent,payments:Co
   const paidPayments=payments.filter(payment=>payment.status==="paid");
   const unlocks:Record<number,string>={
     1:"Pilar Trading, comunidad de Discord, software Tradinverso, canal de seguimiento individual, directos y operativas en directo. Onboarding inicial y entrega del cuestionario de evolución. Psicotrading y Optimización Financiera permanecen cerrados.",
-    2:"Se abre Psicotrading y se mantiene todo lo anterior. Se realiza una llamada individual con David Rosell para revisar el resultado del cuestionario de evolución, orientar al alumno y definir su planificación individualizada.",
+    2:student.plan===2
+      ? "Se abren Psicotrading y Optimización Financiera. Se realiza la revisión individual del cuestionario, la orientación y la planificación personalizada. Queda confirmado el acceso completo a los tres pilares y a todos los servicios del programa."
+      : "Se abre Psicotrading y se mantiene todo lo anterior. Se realiza una llamada individual con David Rosell para revisar el resultado del cuestionario de evolución, orientar al alumno y definir su planificación individualizada.",
     3:"Se abre Optimización Financiera y queda confirmado el acceso completo a los tres pilares y a todos los servicios del programa.",
     4:"Se mantiene el acceso completo a los tres pilares y a todos los servicios del programa.",
   };
@@ -92,9 +94,11 @@ export async function createPandaDocContract(student:ContractStudent,payments:Co
       heading("Cómo se abre el acceso"),
       keyValueTable([
         ["Después del pago 1","Se activa el Pilar Trading, la comunidad de Discord, el software Tradinverso, el canal de seguimiento individual, los directos y las operativas en directo. Se realiza el onboarding inicial y se entrega el cuestionario de evolución. Psicotrading y Optimización Financiera permanecen cerrados."],
-        ["Después del pago 2","Se abre Psicotrading y se mantiene todo lo anterior. Se realiza una llamada individual con David Rosell para revisar el resultado del cuestionario de evolución, orientar al alumno y definir su planificación individualizada."],
-        ["Después del pago 3","Se abre Optimización Financiera y queda confirmado el acceso completo a los tres pilares y a todos los servicios del programa."],
-        ...(student.plan===4?[["Después del pago 4","Se mantiene el acceso completo a los tres pilares y a todos los servicios del programa."] as [string,string]]:[]),
+        ["Después del pago 2",student.plan===2
+          ? "Se abren Psicotrading y Optimización Financiera. Se realiza la revisión individual del cuestionario, la orientación y la planificación personalizada. Queda confirmado el acceso completo a los tres pilares y a todos los servicios del programa."
+          : "Se abre Psicotrading y se mantiene todo lo anterior. Se realiza una llamada individual con David Rosell para revisar el resultado del cuestionario de evolución, orientar al alumno y definir su planificación individualizada."],
+        ...(student.plan>=3?[["Después del pago 3","Se abre Optimización Financiera y queda confirmado el acceso completo a los tres pilares y a todos los servicios del programa."] as [string,string]]:[]),
+        ...Array.from({length:Math.max(0,student.plan-3)},(_,index)=>[`Después del pago ${index+4}`,"Se mantiene el acceso completo a los tres pilares y a todos los servicios del programa."] as [string,string]),
       ]),
       heading("Calendario de pagos"),
       body(`El precio total acordado es de ${total} ${student.currency}, dividido en ${student.plan} pagos de ${student.installmentAmount} ${student.currency}.`),

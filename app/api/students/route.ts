@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     const phone = body.phone?.trim() || "";
     const currency = body.currency === "EUR" ? "EUR" : body.currency === "USDC" ? "USDC" : "USDT";
     const specialStripePlan = currency === "EUR" && body.network?.trim().toLowerCase() === "stripe" && body.plan === 5;
-    const plan = specialStripePlan ? 5 : 3;
+    const plan = specialStripePlan ? 5 : body.plan === 2 ? 2 : 3;
     const requestedAmount = Number(body.installmentAmount);
     const installmentAmount = specialStripePlan ? 320 : Number.isFinite(requestedAmount) && requestedAmount > 0 ? Math.round(requestedAmount) : 550;
     const privateEnv = env as unknown as Record<string, string | undefined>;

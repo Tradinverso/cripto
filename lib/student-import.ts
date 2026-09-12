@@ -216,9 +216,10 @@ export function parseStudentText(rawText: string, defaults: ImportDefaults): Qui
     : /\busdc\b/.test(normalizedText) ? "USDC" : "USDT";
   const stripeFivePayment = currency === "EUR" && /\bstripe\b/.test(normalizedText)
     && (/\b5\s*(?:pagos|plazos|cuotas|meses)\b/.test(normalizedText) || paymentsFound.length >= 5);
-  const plan = stripeFivePayment ? 5 : 3;
+  const twoPaymentPlan = /\b2\s*(?:pagos|plazos|cuotas|meses)\b/.test(normalizedText) || paymentsFound.length === 2;
+  const plan = stripeFivePayment ? 5 : twoPaymentPlan ? 2 : 3;
   const detectedAmount = paymentsFound.length && paymentsFound.every((payment) => payment.amount === paymentsFound[0].amount)
-    ? paymentsFound[0].amount : 550;
+    ? paymentsFound[0].amount : plan === 2 ? 750 : 550;
   const installmentAmount = stripeFivePayment ? 320 : detectedAmount;
 
   const networkEntry = labeledValue(lines, ["red", "network", "metodo(?: de pago)?"]);
